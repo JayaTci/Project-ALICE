@@ -36,8 +36,10 @@ async def build_messages(
     if language == "ja":
         lang_instruction = (
             "\n\n## Language Mode: Japanese\n"
-            "Respond in Japanese. Also provide an English translation below your "
-            "Japanese response, prefixed with [EN]:"
+            "Always respond in Japanese (日本語). After your Japanese response, "
+            "add one blank line then an English translation in exactly this format:\n"
+            "[EN: your English translation here]\n"
+            "Keep the translation concise and natural. Do not add any other labels or prefixes."
         )
 
     if extra_context:

@@ -52,6 +52,32 @@ const Chat = (() => {
 
   function doneStreaming(el) {
     el.classList.remove('streaming');
+    _parseSubtitle(el);
+  }
+
+  /**
+   * Split JA response from [EN: ...] subtitle and render inline.
+   * Input format:  "日本語テキスト\n\n[EN: English translation]"
+   * Output:        Japanese text + styled subtitle block
+   */
+  function _parseSubtitle(el) {
+    const text = el.textContent || '';
+    const match = text.match(/^([\s\S]*?)\s*\[EN:\s*([\s\S]+?)\]\s*$/);
+    if (!match) return;
+
+    const jaText  = match[1].trim();
+    const enText  = match[2].trim();
+
+    el.textContent = '';
+
+    const mainSpan = document.createElement('span');
+    mainSpan.textContent = jaText;
+    el.appendChild(mainSpan);
+
+    const sub = document.createElement('span');
+    sub.className = 'msg-subtitle';
+    sub.textContent = enText;
+    el.appendChild(sub);
   }
 
   // ── Send logic ───────────────────────────────────────────────────────

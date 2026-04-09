@@ -34,8 +34,12 @@ class Settings(BaseSettings):
     wake_word_model: str = "hey_jarvis"     # OpenWakeWord model name or path to .onnx
     wake_word_threshold: float = 0.5        # confidence threshold 0.0–1.0
     stt_model_size: str = "base.en"         # "tiny.en", "base.en", "small", "medium"
+    stt_model_size_ja: str = "small"        # multilingual model for Japanese STT (Phase 8)
     speaker_verify_enabled: bool = False    # enable speaker verification (Phase 5)
     speaker_verify_threshold: float = 0.35
+
+    # Language (Phase 8)
+    default_language: str = "en"           # "en" | "ja" — starting language
 
     # Music (Phase 7)
     shoot_to_thrill_path: str = ""

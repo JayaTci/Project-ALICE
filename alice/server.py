@@ -84,6 +84,10 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
     _ws_clients.add(ws)
     logger.info("UI client connected (%d total)", len(_ws_clients))
 
+    # Sync current language to new client
+    from alice.brain.language import get_language
+    await ws.send_str(json.dumps({"type": "language_changed", "lang": get_language()}))
+
     brain = request.app["brain"]
 
     try:
@@ -101,6 +105,14 @@ async def ws_handler(request: web.Request) -> web.WebSocketResponse:
                     if not text:
                         continue
                     await _handle_chat_message(brain, text)
+
+                elif msg_type == "set_language":
+                    lang = data.get("lang", "en")
+                    if lang in {"en", "ja"}:
+                        from alice.brain.language import set_language, get_language
+                        set_language(lang)
+                        await broadcast({"type": "language_changed", "lang": lang})
+                        logger.info("Language set to: %s", lang)
 
                 elif msg_type == "ping":
                     await ws.send_str(json.dumps({"type": "pong"}))
@@ -195,14 +207,17 @@ async def _index_handler(request: web.Request) -> web.FileResponse:
 async def _config_handler(request: web.Request) -> web.Response:
     """Return a safe subset of settings as JSON for the UI settings panel."""
     from alice.config import settings
+    from alice.brain.language import get_language
     data = {
         "llm_provider": settings.llm_provider,
         "groq_model": settings.groq_model,
         "wake_word_model": settings.wake_word_model,
         "stt_model_size": settings.stt_model_size,
+        "stt_model_size_ja": settings.stt_model_size_ja,
         "speaker_verify_enabled": settings.speaker_verify_enabled,
         "weather_city": settings.weather_city,
         "weather_country_code": settings.weather_country_code,
+        "language": get_language(),
     }
     return web.json_response(data)
 
@@ -237,6 +252,11 @@ async def run_ui_mode(voice_enabled: bool = True) -> None:
     from alice.config import settings
     from alice.memory.store import create_session, init_db
     from alice.brain.engine import AliceBrain
+    from alice.brain.language import set_language
+
+    # Seed language from config
+    if settings.default_language != "en":
+        set_language(settings.default_language)
 
     await init_db()
     session_id = await create_session()

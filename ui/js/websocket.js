@@ -23,6 +23,22 @@ const WS = (() => {
   const statusDot   = document.getElementById('status-dot');
   const statusLabel = document.getElementById('status-label');
   const orbLabel    = document.getElementById('orb-label');
+  const langToggle  = document.getElementById('lang-toggle');
+
+  // ── Language toggle button ────────────────────────────────────────────
+  langToggle.addEventListener('click', () => {
+    const current = langToggle.getAttribute('data-lang') || 'en';
+    const next = current === 'en' ? 'ja' : 'en';
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'set_language', lang: next }));
+    }
+  });
+
+  function _applyLanguage(lang) {
+    langToggle.textContent = lang === 'ja' ? 'JA' : 'EN';
+    langToggle.setAttribute('data-lang', lang);
+    langToggle.title = lang === 'ja' ? 'Switch to English' : 'Switch to Japanese';
+  }
 
   let socket = null;
   let currentAliceBubble = null;   // active streaming bubble
@@ -125,6 +141,11 @@ const WS = (() => {
         // Auto-recover to idle after 2s
         setTimeout(() => setStatus('idle'), 2000);
         Chat.enableInput();
+        break;
+
+      case 'language_changed':
+        _applyLanguage(msg.lang);
+        Chat.appendSystem(msg.lang === 'ja' ? '言語: 日本語' : 'Language: English');
         break;
 
       case 'pong':

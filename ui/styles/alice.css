@@ -517,6 +517,44 @@ body {
   transform: translateX(16px);
 }
 
+/* ── Language toggle ─────────────────────────────────────────────────── */
+.lang-toggle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+  flex-shrink: 0;
+}
+
+.lang-toggle:hover {
+  background: var(--glass-hover);
+  color: var(--text);
+}
+
+.lang-toggle[data-lang="ja"] {
+  border-color: var(--purple);
+  color: var(--purple-light);
+  background: var(--purple-dim);
+}
+
+/* ── Message subtitle (JA mode EN translation) ───────────────────────── */
+.msg-subtitle {
+  display: block;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--glass-border);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.4;
+}
+
 /* ── Divider ─────────────────────────────────────────────────────────── */
 .divider {
   height: 1px;

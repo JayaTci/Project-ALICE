@@ -18,10 +18,18 @@ MAX_TOOL_ROUNDS = 5
 class AliceBrain:
     def __init__(self, session_id: str, language: str = "en") -> None:
         self.session_id = session_id
-        self.language = language
+        # Seed global language manager with provided default
+        from alice.brain.language import set_language, get_language
+        if language != "en":
+            set_language(language)
         self._provider = get_provider()
         self._tools_enabled = False
         self._tool_schemas: list[dict] = []
+
+    @property
+    def language(self) -> str:
+        from alice.brain.language import get_language
+        return get_language()
 
     def enable_tools(self) -> None:
         """Register tools for LLM function calling."""
@@ -37,15 +45,36 @@ class AliceBrain:
         extra_context: str | None = None,
     ) -> AsyncGenerator[str, None]:
         """
-        Save user message → call LLM (with tools if enabled) →
+        Save user message → detect language → call LLM (with tools if enabled) →
         execute any tool calls → yield streamed final response.
         """
+        from alice.brain.language import (
+            is_language_command, set_language, update_from_input, get_language,
+        )
+
+        # ── Language command shortcut ─────────────────────────────────────
+        lang_cmd = is_language_command(user_input)
+        if lang_cmd is not None:
+            set_language(lang_cmd)
+            if lang_cmd == "ja":
+                reply = "はい、日本語で話します。何でもどうぞ！\n\n[EN: Sure, I'll speak in Japanese. What can I do for you?]"
+            else:
+                reply = "Switched to English. How can I help you?"
+            yield reply
+            await save_message(self.session_id, "user", user_input)
+            await save_message(self.session_id, "assistant", reply)
+            return
+
+        # ── Auto-detect language from input ───────────────────────────────
+        current_lang = update_from_input(user_input)
+        logger.debug("Language: %s", current_lang)
+
         await save_message(self.session_id, "user", user_input)
 
         messages = await build_messages(
             self.session_id,
             user_input,
-            language=self.language,
+            language=current_lang,
             extra_context=extra_context,
         )
 

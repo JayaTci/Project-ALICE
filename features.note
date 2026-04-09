@@ -62,13 +62,16 @@
 - [x] Global keyboard hotkey (Ctrl+Shift+A) → wake sequence
 - [ ] Natural conversation trigger ("what do you think, Alice?") — deferred
 
-### Bilingual EN/JA (Phase 8) 🔲
-- [ ] Language detection from user input
-- [ ] Manual toggle via voice/UI
-- [ ] STT multilingual model switch
-- [ ] Edge-TTS Japanese voice (ja-JP-NanamiNeural)
-- [ ] Response with English subtitles in JA mode
-- [ ] Structured LLM output (JA + EN translation)
+### Bilingual EN/JA (Phase 8) ✅ Done
+- [x] Auto-detect language from user input (Unicode Japanese char detection)
+- [x] Manual toggle: /ja, /en commands in chat
+- [x] Manual toggle: EN/JA button in UI header (broadcasts set_language WS message)
+- [x] LLM responds in Japanese + appends [EN: ...] subtitle when in JA mode
+- [x] Edge-TTS NanamiNeural for Japanese, AriaNeural for English (already in Phase 4)
+- [x] UI parses [EN: ...] → styled subtitle block below Japanese text
+- [x] language_changed WS event — UI toggle syncs on connect
+- [x] DEFAULT_LANGUAGE + STT_MODEL_SIZE_JA in config + .env.example
+- [x] Note: JA voice input requires STT_MODEL_SIZE=small (multilingual Whisper)
 
 ### Memory & Learning (Phase 9) 🔲
 - [ ] Preference tracking from conversation
