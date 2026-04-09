@@ -27,6 +27,9 @@ async def run(broadcast) -> str:
     Returns:
         The briefing text that was spoken.
     """
+    from alice.brain.language import get_language
+    lang = get_language()
+
     await broadcast({"type": "status", "state": "thinking", "label": "Boot sequence…"})
 
     # ── Step 1: music + apps in parallel ────────────────────────────────
@@ -35,15 +38,15 @@ async def run(broadcast) -> str:
     await asyncio.gather(music_task, apps_task, return_exceptions=True)
 
     # ── Step 2: weather + news in parallel ───────────────────────────────
-    weather_task = asyncio.create_task(_get_weather())
-    news_task    = asyncio.create_task(_get_news())
+    weather_task = asyncio.create_task(_get_weather(lang))
+    news_task    = asyncio.create_task(_get_news(lang))
     weather_text, news_text = await asyncio.gather(
         weather_task, news_task, return_exceptions=True
     )
 
     # ── Step 3: build briefing ───────────────────────────────────────────
-    greeting = _greeting()
-    briefing = _assemble(greeting, weather_text, news_text)
+    greeting = _greeting(lang)
+    briefing = _assemble(greeting, weather_text, news_text, lang)
 
     # ── Step 4: stream to UI + speak ────────────────────────────────────
     await broadcast({"type": "status", "state": "speaking", "label": "Boot sequence…"})
@@ -56,7 +59,7 @@ async def run(broadcast) -> str:
 
     try:
         from alice.brain.tts import edge_tts as tts
-        await tts.speak(briefing)
+        await tts.speak(briefing, language=lang)
     except Exception:
         logger.exception("Boot sequence TTS failed")
 
@@ -66,18 +69,27 @@ async def run(broadcast) -> str:
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
-def _greeting() -> str:
+def _greeting(lang: str = "en") -> str:
     hour = datetime.now().hour
-    if hour < 12:
-        tod = "Good morning"
-    elif hour < 18:
-        tod = "Good afternoon"
+    if lang == "ja":
+        if hour < 12:
+            tod = "おはようございます"
+        elif hour < 18:
+            tod = "こんにちは"
+        else:
+            tod = "こんばんは"
+        return f"{tod}、ボス。全システム起動完了。"
     else:
-        tod = "Good evening"
-    return f"{tod}, boss. All systems online."
+        if hour < 12:
+            tod = "Good morning"
+        elif hour < 18:
+            tod = "Good afternoon"
+        else:
+            tod = "Good evening"
+        return f"{tod}, boss. All systems online."
 
 
-def _assemble(greeting: str, weather, news) -> str:
+def _assemble(greeting: str, weather, news, lang: str = "en") -> str:
     parts = [greeting]
 
     if isinstance(weather, str) and weather:
@@ -90,7 +102,7 @@ def _assemble(greeting: str, weather, news) -> str:
     elif isinstance(news, Exception):
         logger.warning("News fetch failed: %s", news)
 
-    parts.append("How can I help you today?")
+    parts.append("何かお役に立てることはありますか？" if lang == "ja" else "How can I help you today?")
     return " ".join(parts)
 
 
@@ -144,7 +156,7 @@ async def _launch_apps() -> None:
         logger.warning("Boot: window tiling failed")
 
 
-async def _get_weather() -> str:
+async def _get_weather(lang: str = "en") -> str:
     """Return short weather summary string, or "" on failure."""
     from alice.config import settings
     if not settings.openweather_api_key:
@@ -164,13 +176,15 @@ async def _get_weather() -> str:
         temp = d["main"]["temp"]
         cond = d["weather"][0]["description"]
         city = d.get("name", settings.weather_city)
+        if lang == "ja":
+            return f"{city}の現在の天気：{cond}、気温{temp:.0f}度です。"
         return f"Current weather in {city}: {cond}, {temp:.0f} degrees Celsius."
     except Exception as exc:
         logger.warning("Boot: weather fetch error: %s", exc)
         return ""
 
 
-async def _get_news() -> str:
+async def _get_news(lang: str = "en") -> str:
     """Return top 3 headlines as a short spoken sentence, or "" on failure."""
     try:
         import httpx, re, html as html_mod
@@ -196,7 +210,8 @@ async def _get_news() -> str:
         if not titles:
             return ""
         headlines = ". ".join(titles)
-        return f"Top headlines: {headlines}."
+        prefix = "トップニュース：" if lang == "ja" else "Top headlines: "
+        return f"{prefix}{headlines}."
     except Exception as exc:
         logger.warning("Boot: news fetch error: %s", exc)
         return ""

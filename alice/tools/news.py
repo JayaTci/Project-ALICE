@@ -24,7 +24,12 @@ RSS_FEEDS = {
 
 
 def _strip_html(text: str) -> str:
-    text = re.sub(r"<[^>]+>", "", text)
+    # Unwrap CDATA first — many RSS feeds wrap titles in <![CDATA[...]]>
+    cdata = re.match(r"<!\[CDATA\[(.*?)]]>", text.strip(), re.DOTALL)
+    if cdata:
+        text = cdata.group(1)
+    else:
+        text = re.sub(r"<[^>]+>", "", text)
     return html.unescape(text).strip()
 
 
