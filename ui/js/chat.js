@@ -22,12 +22,40 @@ const Chat = (() => {
   }
 
   function createBubble(role, text = '') {
-    const el = document.createElement('div');
-    el.className = `msg msg-${role}`;
-    if (text) el.textContent = text;
-    log.appendChild(el);
+    const bubble = document.createElement('div');
+    bubble.className = `msg msg-${role}`;
+    if (text) bubble.textContent = text;
+
+    // System messages: centered, no label/timestamp wrapper
+    if (role === 'system') {
+      log.appendChild(bubble);
+      scrollToBottom();
+      return bubble;
+    }
+
+    // Alice + user messages: wrap with sender label + timestamp
+    const wrap = document.createElement('div');
+    wrap.className = `msg-wrap msg-wrap-${role}`;
+
+    const sender = document.createElement('span');
+    sender.className = 'msg-sender';
+    sender.textContent = role === 'alice' ? 'Alice' : 'You';
+    wrap.appendChild(sender);
+
+    const row = document.createElement('div');
+    row.className = 'msg-row';
+    row.appendChild(bubble);
+
+    const timeEl = document.createElement('span');
+    timeEl.className = 'msg-time';
+    const d = new Date();
+    timeEl.textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    row.appendChild(timeEl);
+
+    wrap.appendChild(row);
+    log.appendChild(wrap);
     scrollToBottom();
-    return el;
+    return bubble;   // callers receive inner .msg — no other changes needed
   }
 
   // ── Public API ───────────────────────────────────────────────────────

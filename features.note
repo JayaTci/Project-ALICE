@@ -83,6 +83,14 @@
 - [x] Tool call logging in engine (fire-and-forget asyncio.create_task)
 - [x] Dynamic preference injection into system prompt (was already in context.py, now enhanced)
 
+### UI Redesign ✅ Done
+- [x] Two-panel layout: chat (60% left) + 3D sphere (40% right)
+- [x] 3D wireframe constellation sphere: 96 Fibonacci nodes, ~220 edges, perspective projection
+- [x] Sphere state colors: idle=cyan, listening=green, thinking=purple, speaking=amber, error=red
+- [x] Message bubbles: sender label (Alice / You) + HH:MM timestamp
+- [x] Cyan accent theme (replaces purple for Alice elements)
+- [x] All JS APIs preserved: VoiceOrb.setState, Chat.*, WS.* — no logic changes
+
 ### Polish & Hardening (Phase 10) ✅ Done
 - [x] Startup health check (python version, packages, API key, DB, voice, optional features)
 - [x] Rotating log files (logs/alice.log, 5MB × 3 backups, UTF-8, suppresses noisy libs)
