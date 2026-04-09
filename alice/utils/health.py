@@ -48,14 +48,31 @@ def run_health_check(verbose: bool = True) -> bool:
         except ImportError:
             results.append((False, f"Package missing: {pkg}  ->  pip install {pkg}"))
 
-    # ── LLM provider config ───────────────────────────────────────────────
-    if settings.llm_provider == "groq":
-        if not settings.groq_api_key or settings.groq_api_key.startswith("your_"):
-            results.append((False, "GROQ_API_KEY not set — LLM will not work"))
+    # ── LLM provider chain ────────────────────────────────────────────────
+    chain = [s.strip().lower() for s in settings.llm_fallback_chain.split(",") if s.strip()]
+    active_providers = []
+    if "groq" in chain:
+        if settings.groq_api_key and not settings.groq_api_key.startswith("your_"):
+            results.append((True, f"Groq: {settings.groq_model}"))
+            active_providers.append("groq")
         else:
-            results.append((True, f"Groq API key set (model: {settings.groq_model})"))
-    elif settings.llm_provider == "ollama":
-        results.append((None, f"Ollama mode — ensure Ollama is running at {settings.ollama_base_url}"))
+            results.append((None, "Groq: GROQ_API_KEY not set — skipped in chain"))
+    if "gemini" in chain:
+        if settings.gemini_api_key and not settings.gemini_api_key.startswith("your_"):
+            results.append((True, f"Gemini: {settings.gemini_model}"))
+            active_providers.append("gemini")
+        else:
+            results.append((None, "Gemini: GEMINI_API_KEY not set — skipped in chain"))
+    if "openrouter" in chain:
+        if settings.openrouter_api_key and not settings.openrouter_api_key.startswith("your_"):
+            results.append((True, f"OpenRouter: {settings.openrouter_model}"))
+            active_providers.append("openrouter")
+        else:
+            results.append((None, "OpenRouter: OPENROUTER_API_KEY not set — skipped in chain"))
+    if "ollama" in chain:
+        results.append((None, f"Ollama: ensure Ollama is running at {settings.ollama_base_url}"))
+    if not active_providers and "ollama" not in chain:
+        results.append((False, "No LLM providers configured — set at least one API key in .env"))
 
     # ── Database ──────────────────────────────────────────────────────────
     import os

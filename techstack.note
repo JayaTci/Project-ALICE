@@ -5,8 +5,11 @@
 - pip (package manager)
 
 ### AI / LLM
-- Groq API — llama-3.3-70b-versatile (cloud, primary, free tier)
-- Ollama — llama3.1:8b (local, desktop only, Phase 1+)
+- Groq API — llama-3.3-70b-versatile (cloud, free tier, priority 1)
+- Google Gemini — gemini-2.0-flash (cloud, free tier, priority 2 fallback)
+- OpenRouter — meta-llama/llama-3.3-70b-instruct:free (cloud, free tier, priority 3 fallback)
+- Ollama — llama3.1:8b (local, no rate limit, priority 4 fallback)
+- FallbackRouter — auto-rotates providers on rate limit (60s cooldown per provider)
 
 ### Audio
 - sounddevice — mic capture + speaker output (Phase 3)

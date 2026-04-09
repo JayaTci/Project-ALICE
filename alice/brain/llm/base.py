@@ -25,6 +25,10 @@ class LLMChunk:
     tool_calls: list[ToolCall] | None = None
 
 
+class RateLimitError(RuntimeError):
+    """Raised when a provider hits its rate limit (HTTP 429). Router will try next provider."""
+
+
 class LLMProvider(ABC):
     @abstractmethod
     async def stream(

@@ -91,6 +91,16 @@
 - [x] Cyan accent theme (replaces purple for Alice elements)
 - [x] All JS APIs preserved: VoiceOrb.setState, Chat.*, WS.* — no logic changes
 
+### LLM Fallback Chain ✅ Done
+- [x] FallbackRouter wraps all providers — tries each in order on RateLimitError
+- [x] Google Gemini provider (gemini-2.0-flash, OpenAI-compat endpoint)
+- [x] OpenRouter provider (meta-llama/llama-3.3-70b-instruct:free, free tier)
+- [x] 60s cooldown per rate-limited provider, auto-recovers after cooldown
+- [x] RateLimitError base class — providers raise it on HTTP 429
+- [x] Health check shows all provider statuses
+- [x] LLM_FALLBACK_CHAIN config (comma-separated priority list)
+- [x] Providers without API keys silently skipped
+
 ### Polish & Hardening (Phase 10) ✅ Done
 - [x] Startup health check (python version, packages, API key, DB, voice, optional features)
 - [x] Rotating log files (logs/alice.log, 5MB × 3 backups, UTF-8, suppresses noisy libs)

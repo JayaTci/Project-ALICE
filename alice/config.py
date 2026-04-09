@@ -12,9 +12,15 @@ class Settings(BaseSettings):
     # LLM Providers
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash"
+    openrouter_api_key: str = ""
+    openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"
-    llm_provider: str = "groq"  # "groq" | "ollama"
+    llm_provider: str = "groq"  # legacy — kept for backwards compat
+    # Fallback chain: providers tried in order when rate-limited. Skip providers with no API key.
+    llm_fallback_chain: str = "groq,gemini,openrouter,ollama"
 
     # Database
     database_path: str = str(Path(__file__).parent.parent / "data" / "alice.db")

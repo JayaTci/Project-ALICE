@@ -2,7 +2,7 @@ import json
 from collections.abc import AsyncGenerator
 
 import httpx
-from alice.brain.llm.base import LLMChunk, LLMProvider, Message, ToolCall
+from alice.brain.llm.base import LLMChunk, LLMProvider, Message, RateLimitError, ToolCall
 from alice.config import settings
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -142,7 +142,7 @@ class GroqProvider(LLMProvider):
             if code == 401:
                 raise RuntimeError("Groq API key invalid — check GROQ_API_KEY in .env.")
             if code == 429:
-                raise RuntimeError("Groq rate limit hit — wait a moment and retry.")
+                raise RateLimitError("Groq rate limit hit — switching to next provider.")
             raise RuntimeError(f"Groq API error {code}: {exc.response.text[:200]}")
 
         choice = data["choices"][0]
