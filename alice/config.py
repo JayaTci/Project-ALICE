@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     # Weather (Phase 2+)
     openweather_api_key: str = ""
-    weather_city: str = "Manila"
+    weather_city: str = "Tagum"
     weather_country_code: str = "PH"
 
     # Voice / Audio (Phase 3+)

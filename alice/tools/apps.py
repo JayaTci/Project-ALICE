@@ -18,6 +18,14 @@ PRESET_EXECUTABLES: dict[str, str] = {
     "vscode": "code.exe",
     "notepad": "notepad.exe",
     "explorer": "explorer.exe",
+    "obs": "obs64.exe",
+    "obs studio": "obs64.exe",
+    "brave": "brave.exe",
+    "edge": "msedge.exe",
+    "telegram": "telegram.exe",
+    "zoom": "zoom.exe",
+    "teams": "teams.exe",
+    "valorant": "valorant.exe",
 }
 
 

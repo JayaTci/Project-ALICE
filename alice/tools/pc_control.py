@@ -9,21 +9,64 @@ logger = logging.getLogger(__name__)
 
 # Common app name → executable mapping for Windows
 APP_MAP: dict[str, str] = {
+    # Browsers
     "chrome": "chrome.exe",
     "google chrome": "chrome.exe",
     "firefox": "firefox.exe",
+    "brave": "brave.exe",
+    "edge": "msedge.exe",
+    "microsoft edge": "msedge.exe",
+    "opera": "opera.exe",
+    # Communication
     "discord": "discord.exe",
+    "telegram": "telegram.exe",
+    "slack": "slack.exe",
+    "zoom": "zoom.exe",
+    "teams": "teams.exe",
+    "microsoft teams": "teams.exe",
+    # Media
     "spotify": "spotify.exe",
+    "vlc": "vlc.exe",
+    "media player": "wmplayer.exe",
+    # Streaming / Recording
+    "obs": "obs64.exe",
+    "obs studio": "obs64.exe",
+    # Development
+    "vs code": "code.exe",
+    "vscode": "code.exe",
+    "visual studio code": "code.exe",
     "notepad": "notepad.exe",
+    "notepad++": "notepad++.exe",
+    # Gaming platforms
+    "steam": "steam.exe",
+    "valorant": "valorant.exe",
+    # Games (Steam URI — launches via Steam)
+    "cs2": "steam://rungameid/730",
+    "counter-strike": "steam://rungameid/730",
+    "counter-strike 2": "steam://rungameid/730",
+    "terraria": "steam://rungameid/105600",
+    "left 4 dead 2": "steam://rungameid/550",
+    "l4d2": "steam://rungameid/550",
+    "project zomboid": "steam://rungameid/108600",
+    "gta v": "steam://rungameid/271590",
+    "gta": "steam://rungameid/271590",
+    "dota 2": "steam://rungameid/570",
+    "dota": "steam://rungameid/570",
+    # System
     "explorer": "explorer.exe",
     "file explorer": "explorer.exe",
     "task manager": "taskmgr.exe",
+    "taskmgr": "taskmgr.exe",
     "cmd": "cmd.exe",
     "terminal": "wt.exe",
-    "vs code": "code.exe",
-    "vscode": "code.exe",
-    "steam": "steam.exe",
-    "vlc": "vlc.exe",
+    "windows terminal": "wt.exe",
+    "calculator": "calc.exe",
+    "paint": "mspaint.exe",
+    "snipping tool": "SnippingTool.exe",
+    # Office
+    "word": "WINWORD.EXE",
+    "excel": "EXCEL.EXE",
+    "powerpoint": "POWERPNT.EXE",
 }
 
 
@@ -75,7 +118,12 @@ class PCControlTool(BaseTool):
             return ToolResult(success=False, output="", error="No app name provided.")
         exe = APP_MAP.get(name.lower(), name)
         try:
-            subprocess.Popen(exe, shell=True)
+            import os
+            if exe.startswith("steam://"):
+                # Steam URI scheme — use os.startfile so Windows handles the protocol
+                os.startfile(exe)
+            else:
+                subprocess.Popen(exe, shell=True)
             return ToolResult(success=True, output=f"Opened {name}.")
         except Exception as exc:
             return ToolResult(success=False, output="", error=str(exc))

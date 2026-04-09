@@ -8,7 +8,7 @@ OWM_URL = "https://api.openweathermap.org/data/2.5/weather"
 class WeatherTool(BaseTool):
     name = "get_weather"
     description = (
-        "Get the current weather for Chester's location (Manila, Philippines by default) "
+        "Get the current weather for Chester's location (Tagum City, Philippines by default) "
         "or any specified city. Returns temperature, conditions, humidity, and wind."
     )
     parameters = {
