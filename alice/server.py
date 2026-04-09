@@ -61,8 +61,10 @@ async def broadcast_status(state: str, label: str = "") -> None:
 async def _run_brain(brain, text: str, speak: bool = False) -> None:
     """
     Stream brain response to all UI clients.
-    speak=True → also play TTS after response is fully assembled.
+    speak=True → also play TTS in the current language after streaming.
+    JA mode: strips [EN: ...] subtitle before speaking (UI keeps it for subtitle display).
     """
+    import re as _re
     full_response = ""
     async for chunk in brain.respond_stream(text):
         await broadcast({"type": "token", "text": chunk})
@@ -72,7 +74,13 @@ async def _run_brain(brain, text: str, speak: bool = False) -> None:
     if speak and full_response:
         await broadcast_status("speaking")
         from alice.brain.tts import edge_tts as tts
-        await tts.speak(full_response)
+        from alice.brain.language import get_language
+        lang = get_language()
+        # Strip [EN: ...] block before TTS so Alice only speaks the primary language
+        tts_text = _re.sub(r'\s*\[EN:[\s\S]*?\]\s*$', '', full_response).strip()
+        if tts_text:
+            await tts.speak(tts_text, language=lang)
+        await broadcast_status("idle")
 
 
 # ─── WebSocket handler ───────────────────────────────────────────────────────
@@ -148,11 +156,10 @@ async def _handle_chat_message(brain, text: str) -> None:
     async with _brain_lock:
         await broadcast_status("thinking")
         try:
-            await _run_brain(brain, text, speak=False)
+            await _run_brain(brain, text, speak=True)
         except Exception as exc:
             logger.exception("Brain error processing chat message")
             await broadcast({"type": "error", "message": str(exc)})
-        finally:
             await broadcast_status("idle")
 
 
