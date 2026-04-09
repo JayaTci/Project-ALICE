@@ -65,9 +65,41 @@ class AliceBrain:
             await save_message(self.session_id, "assistant", reply)
             return
 
+        # ── /remember command ─────────────────────────────────────────────
+        stripped = user_input.strip()
+        if stripped.lower().startswith("/remember "):
+            from alice.memory.preferences import handle_remember
+            reply = await handle_remember(stripped[10:])
+            yield reply
+            await save_message(self.session_id, "user", user_input)
+            await save_message(self.session_id, "assistant", reply)
+            return
+
+        # ── /forget command ───────────────────────────────────────────────
+        if stripped.lower().startswith("/forget "):
+            from alice.memory.preferences import handle_forget
+            reply = await handle_forget(stripped[8:])
+            yield reply
+            await save_message(self.session_id, "user", user_input)
+            await save_message(self.session_id, "assistant", reply)
+            return
+
+        # ── /memories command ─────────────────────────────────────────────
+        if stripped.lower() in {"/memories", "/memory", "/remember"}:
+            from alice.memory.preferences import list_memories
+            reply = await list_memories()
+            yield reply
+            await save_message(self.session_id, "user", user_input)
+            await save_message(self.session_id, "assistant", reply)
+            return
+
         # ── Auto-detect language from input ───────────────────────────────
         current_lang = update_from_input(user_input)
         logger.debug("Language: %s", current_lang)
+
+        # ── Schedule background preference extraction ──────────────────────
+        from alice.memory.preferences import schedule_extraction
+        schedule_extraction(user_input)
 
         await save_message(self.session_id, "user", user_input)
 
@@ -109,12 +141,17 @@ class AliceBrain:
 
             # Execute each tool and append results as "tool" role messages
             from alice.tools.base import execute_tool
+            from alice.memory.patterns import log_tool_call
             for tc in result.tool_calls:
                 logger.info("Executing tool: %s(%s)", tc.name, tc.arguments)
                 yield f"\n[Executing: {tc.name}...]\n"
 
                 tool_result = await execute_tool(tc.name, **tc.arguments)
                 tool_output = tool_result.output if tool_result.success else f"Error: {tool_result.error}"
+
+                # Log for pattern analysis (fire-and-forget)
+                import asyncio as _asyncio
+                _asyncio.create_task(log_tool_call(tc.name))
 
                 messages.append(Message(
                     role="tool",

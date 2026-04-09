@@ -4,6 +4,7 @@ import yaml
 from alice.brain.llm.base import Message
 from alice.config import settings
 from alice.memory.store import get_all_preferences, get_history
+from alice.memory.patterns import get_proactive_suggestion
 
 
 def _load_system_prompt() -> str:
@@ -47,7 +48,14 @@ async def build_messages(
     else:
         extra_block = ""
 
-    system_content = base_prompt + pref_block + lang_instruction + extra_block
+    # Proactive suggestion from usage patterns
+    suggestion = await get_proactive_suggestion()
+    suggestion_block = (
+        f"\n\n## Usage Pattern Insight\n{suggestion}"
+        if suggestion else ""
+    )
+
+    system_content = base_prompt + pref_block + lang_instruction + suggestion_block + extra_block
     messages: list[Message] = [Message(role="system", content=system_content)]
 
     # Historical messages

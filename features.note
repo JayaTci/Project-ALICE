@@ -73,12 +73,15 @@
 - [x] DEFAULT_LANGUAGE + STT_MODEL_SIZE_JA in config + .env.example
 - [x] Note: JA voice input requires STT_MODEL_SIZE=small (multilingual Whisper)
 
-### Memory & Learning (Phase 9) 🔲
-- [ ] Preference tracking from conversation
-- [ ] Usage pattern detection (time, frequency)
-- [ ] Proactive suggestions (context-aware)
-- [ ] /remember command
-- [ ] Dynamic preference injection into LLM context
+### Memory & Learning (Phase 9) ✅ Done
+- [x] /remember <thing> — saves raw statement as preference (permanent, cross-session)
+- [x] /forget <keyword> — removes matching preferences by keyword search
+- [x] /memories — lists all saved preferences
+- [x] Auto-extract preferences from conversation (keyword trigger → async LLM extraction)
+- [x] usage_events table: tracks tool calls + app launches by hour/day-of-week
+- [x] Proactive suggestion: injected into system prompt when pattern ≥ 3 occurrences
+- [x] Tool call logging in engine (fire-and-forget asyncio.create_task)
+- [x] Dynamic preference injection into system prompt (was already in context.py, now enhanced)
 
 ### Polish (Phase 10) 🔲
 - [ ] Graceful error handling on all tools/providers
