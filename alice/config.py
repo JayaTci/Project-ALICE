@@ -47,7 +47,8 @@ class Settings(BaseSettings):
 
     # Owner PIN — virtual authentication when mic unavailable
     # Entering this in chat triggers the full boot sequence (same as double clap)
-    owner_pin: str = "120901"
+    # Set via OWNER_PIN in .env — leave empty to disable PIN auth
+    owner_pin: str = ""
 
     # Logging
     log_level: str = "INFO"
