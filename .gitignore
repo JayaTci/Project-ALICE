@@ -35,3 +35,6 @@ logs/
 
 # Claude project files
 .claude/
+
+# Personal/private folders
+PC-SPECS/

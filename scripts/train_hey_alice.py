@@ -43,7 +43,7 @@ def extract_embeddings(audio_files: list[Path]) -> np.ndarray:
     from openwakeword.utils import AudioFeatures
 
     # Load OWW just for its preprocessor (embedding model)
-    m = Model(wakeword_models=["hey_jarvis"], inference_framework="onnx")
+    m = Model(wakeword_models=["hey_alice"], inference_framework="onnx")
     preprocessor = m.preprocessor
 
     all_embeddings = []

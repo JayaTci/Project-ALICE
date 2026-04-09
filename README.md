@@ -9,7 +9,7 @@ Personal JARVIS-inspired AI assistant that lives entirely on your PC. Female voi
 | Feature | Status |
 |---------|--------|
 | Voice + chat input | Done |
-| Wake word ("hey jarvis") | Done |
+| Wake word ("hey alice") | Done |
 | Double clap Iron Man boot | Done |
 | Speaker verification | Done |
 | PC control (apps, volume, lock) | Done |
@@ -62,7 +62,7 @@ The browser opens automatically in UI mode. A system tray icon appears — right
 ## Voice Setup (optional)
 
 ### Wake word
-Default wake word: `hey jarvis` (OpenWakeWord, built-in, no account needed).
+Default wake word: `hey alice` (OpenWakeWord, built-in, no account needed).
 
 Custom wake word: set `WAKE_WORD_MODEL` in `.env` to path of your `.onnx` model. Use `scripts/generate_hey_alice.py` + `scripts/train_hey_alice.py` to train one.
 
@@ -123,7 +123,7 @@ py -3.14 scripts/autostart.py uninstall
 
 ```
 Mic -> AudioListener (subprocess)
-         |- OpenWakeWord ("hey jarvis")
+         |- OpenWakeWord ("hey alice")
          |- Double clap detector
          |- Amplitude VAD -> Faster-Whisper STT
          `- SpeechBrain speaker verify

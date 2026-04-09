@@ -1,5 +1,5 @@
 """
-Wake word quiet start — triggered by "hey jarvis".
+Wake word quiet start — triggered by "hey alice".
 
 Steps:
   1. Launch preset apps (no music, no tiling — quiet)

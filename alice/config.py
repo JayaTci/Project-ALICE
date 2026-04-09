@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     weather_country_code: str = "PH"
 
     # Voice / Audio (Phase 3+)
-    wake_word_model: str = "hey_jarvis"     # OpenWakeWord model name or path to .onnx
+    wake_word_model: str = "hey_alice"      # OpenWakeWord model name or path to .onnx
     wake_word_threshold: float = 0.5        # confidence threshold 0.0–1.0
     stt_model_size: str = "base.en"         # "tiny.en", "base.en", "small", "medium"
     stt_model_size_ja: str = "small"        # multilingual model for Japanese STT (Phase 8)

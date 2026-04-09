@@ -22,7 +22,7 @@
 ### Voice Input (Phase 3) ✅ Done
 - [x] Mic capture loop (sounddevice)
 - [x] Voice Activity Detection (amplitude-based custom VAD)
-- [x] Wake word detection: "hey_jarvis" (OpenWakeWord, MIT)
+- [x] Wake word detection: "hey_alice" (OpenWakeWord, MIT)
 - [x] Double clap detection (amplitude spike analysis)
 - [x] STT transcription (Faster-Whisper, local)
 

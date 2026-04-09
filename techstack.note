@@ -14,7 +14,7 @@
 - faster-whisper — local STT, base.en / small multilingual (Phase 3)
 - edge-tts — Microsoft neural TTS, EN + JA voices (Phase 4)
 - piper-tts — local TTS fallback (Phase 4)
-- OpenWakeWord — "hey_jarvis" wake word, MIT license, no account (Phase 3)
+- OpenWakeWord — "hey_alice" wake word, MIT license, no account (Phase 3)
 - SpeechBrain ECAPA-TDNN — speaker verification (Phase 5)
 
 ### Data / Memory

@@ -1,11 +1,11 @@
 """
 Wake word detection using OpenWakeWord (MIT license, no account needed).
 
-Default model: "hey_jarvis" (pre-trained, downloads automatically).
+Default model: "hey_alice" (pre-trained, downloads automatically).
 Custom "hey_alice": train via OpenWakeWord training pipeline (see scripts/train_wake_word.py).
 
 Set in .env:
-  WAKE_WORD_MODEL=hey_jarvis          (model name or path to .onnx file)
+  WAKE_WORD_MODEL=hey_alice          (model name or path to .onnx file)
   WAKE_WORD_THRESHOLD=0.5             (confidence threshold 0.0–1.0)
 """
 
@@ -21,14 +21,14 @@ SAMPLE_RATE = 16000
 CHUNK_SAMPLES = 1280
 
 _model = None
-_model_name = "hey_jarvis"
+_model_name = "hey_alice"
 _threshold = 0.5
 
 
-def load(model_name: str = "hey_jarvis", threshold: float = 0.5) -> None:
+def load(model_name: str = "hey_alice", threshold: float = 0.5) -> None:
     """
     Load the OpenWakeWord model.
-    model_name: built-in name (e.g. 'hey_jarvis') or path to .onnx file.
+    model_name: built-in name (e.g. 'hey_alice') or path to .onnx file.
     """
     global _model, _model_name, _threshold
     from openwakeword.model import Model

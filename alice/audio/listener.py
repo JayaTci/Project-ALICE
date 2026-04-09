@@ -89,7 +89,7 @@ def _listen_loop(
     # Rolling buffer for OpenWakeWord (needs 1280-sample chunks)
     ww_buffer = np.array([], dtype=np.int16)
 
-    log.info("Mic active. Waiting for 'hey jarvis' or double clap...")
+    log.info("Mic active. Waiting for 'hey alice' or double clap...")
 
     def audio_callback(indata: np.ndarray, frames: int, time_info, status) -> None:
         nonlocal state, ww_buffer
@@ -165,7 +165,7 @@ class AudioListener:
 
     def __init__(
         self,
-        wake_word_model: str = "hey_jarvis",
+        wake_word_model: str = "hey_alice",
         wake_word_threshold: float = 0.5,
         stt_model_size: str = "base.en",
         language: str = "en",
