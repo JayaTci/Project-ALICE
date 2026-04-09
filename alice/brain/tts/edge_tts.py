@@ -58,39 +58,40 @@ async def speak(text: str, language: str = "en") -> None:
 
 
 async def _play_mp3(mp3_data: bytes) -> None:
-    """Save MP3 to temp file and play via Windows Media Player / default player."""
-    import subprocess
-
+    """Save MP3 to temp file and play silently via Windows MCI (no GUI pop-up)."""
     with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
         f.write(mp3_data)
-        tmp_path = f.name
+        tmp_path = Path(f.name)
 
     try:
-        # Use Windows built-in player (non-blocking — returns immediately)
-        proc = await asyncio.create_subprocess_exec(
-            "powershell", "-c",
-            f"(New-Object Media.SoundPlayer '{tmp_path}').PlaySync()",
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
-        )
-        # For MP3, SoundPlayer doesn't work — use Windows Media Player via COM
-        # Fallback: use mplayer/vlc/ffplay if available, else shell open
-        proc.kill()  # kill the failed attempt
-
-        proc2 = await asyncio.create_subprocess_exec(
-            "cmd", "/c", "start", "/wait", "", tmp_path,
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
-        )
-        await proc2.wait()
-    except Exception:
-        # Last resort: sounddevice with pydub
-        await _play_with_sounddevice(mp3_data)
+        await _play_with_mci(str(tmp_path))
+    except Exception as exc:
+        logger.warning("MCI audio playback failed: %s", exc)
     finally:
         try:
-            Path(tmp_path).unlink()
+            tmp_path.unlink()
         except OSError:
             pass
+
+
+async def _play_with_mci(path: str) -> None:
+    """
+    Play MP3 via Windows MCI (winmm.dll).
+    Silent — no GUI pop-up. Blocks until playback finishes.
+    Zero extra dependencies; winmm.dll is built into all Windows versions.
+    """
+    import ctypes
+
+    winmm = ctypes.windll.winmm
+    alias = "alice_tts"
+
+    def _blocking_play() -> None:
+        winmm.mciSendStringW(f'open "{path}" alias {alias}', None, 0, 0)
+        winmm.mciSendStringW(f'play {alias} wait', None, 0, 0)
+        winmm.mciSendStringW(f'close {alias}', None, 0, 0)
+
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, _blocking_play)
 
 
 async def _play_with_sounddevice(mp3_data: bytes) -> None:

@@ -31,3 +31,5 @@ Pillow>=10.0.0  # required by pystray
 
 # Global hotkey (Phase 7+) ✅ installed
 keyboard>=0.13.5
+
+# Audio playback uses Windows MCI (winmm.dll) — no extra package needed
