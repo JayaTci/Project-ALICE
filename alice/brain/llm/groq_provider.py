@@ -107,14 +107,26 @@ class GroqProvider(LLMProvider):
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                GROQ_API_URL,
-                headers=self._build_headers(),
-                json=payload,
-            )
-            response.raise_for_status()
-            data = response.json()
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post(
+                    GROQ_API_URL,
+                    headers=self._build_headers(),
+                    json=payload,
+                )
+                response.raise_for_status()
+                data = response.json()
+        except httpx.ConnectError:
+            raise RuntimeError("Cannot reach Groq API — check internet connection.")
+        except httpx.TimeoutException:
+            raise RuntimeError("Groq API timed out — try again.")
+        except httpx.HTTPStatusError as exc:
+            code = exc.response.status_code
+            if code == 401:
+                raise RuntimeError("Groq API key invalid — check GROQ_API_KEY in .env.")
+            if code == 429:
+                raise RuntimeError("Groq rate limit hit — wait a moment and retry.")
+            raise RuntimeError(f"Groq API error {code}: {exc.response.text[:200]}")
 
         choice = data["choices"][0]
         message = choice["message"]

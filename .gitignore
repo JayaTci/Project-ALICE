@@ -30,6 +30,8 @@ ui/node_modules/
 # Logs
 *.log
 logs/
+# Keep logs dir
+!logs/.gitkeep
 
 # Claude project files
 .claude/

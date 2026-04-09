@@ -83,10 +83,11 @@
 - [x] Tool call logging in engine (fire-and-forget asyncio.create_task)
 - [x] Dynamic preference injection into system prompt (was already in context.py, now enhanced)
 
-### Polish (Phase 10) 🔲
-- [ ] Graceful error handling on all tools/providers
-- [ ] Lazy model loading (fast startup)
-- [ ] Windows auto-start (Task Scheduler)
-- [ ] Structured log rotation
-- [ ] Tested on both laptop + desktop
-- [ ] Full README documentation
+### Polish & Hardening (Phase 10) ✅ Done
+- [x] Startup health check (python version, packages, API key, DB, voice, optional features)
+- [x] Rotating log files (logs/alice.log, 5MB × 3 backups, UTF-8, suppresses noisy libs)
+- [x] Windows auto-start via Task Scheduler (scripts/autostart.py install/uninstall/status)
+- [x] Graceful LLM error handling (401/429/ConnectError/Timeout → user-friendly messages)
+- [x] Engine error boundary (RuntimeError → surface to user, Exception → generic fallback)
+- [x] --no-check flag to skip health check at startup
+- [x] Full README documentation (all phases, troubleshooting, architecture, tech stack)

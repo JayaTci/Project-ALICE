@@ -18,11 +18,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from alice.config import settings
 from alice.memory.store import create_session, init_db
+from alice.utils.logging_setup import setup_logging
 
-logging.basicConfig(
-    level=getattr(logging, settings.log_level.upper(), logging.INFO),
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-)
+setup_logging(settings.log_level)
 logger = logging.getLogger("alice")
 
 CHAT_MODE = "--chat" in sys.argv
@@ -192,6 +190,14 @@ async def _ui_loop() -> None:
 def main() -> None:
     import multiprocessing
     multiprocessing.freeze_support()
+
+    # Phase 10: health check (skippable with --no-check)
+    if "--no-check" not in sys.argv:
+        from alice.utils.health import run_health_check
+        ok = run_health_check(verbose=True)
+        if not ok:
+            logger.error("Critical health check failed — aborting startup.")
+            sys.exit(1)
 
     if UI_MODE:
         asyncio.run(_ui_loop())

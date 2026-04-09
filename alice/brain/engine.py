@@ -114,7 +114,16 @@ class AliceBrain:
 
         # Tool execution loop
         for _round in range(MAX_TOOL_ROUNDS):
-            result = await self._provider.complete(messages, tools=tools)
+            try:
+                result = await self._provider.complete(messages, tools=tools)
+            except RuntimeError as exc:
+                # Provider-level error (network, auth, rate limit) — surface to user
+                yield str(exc)
+                return
+            except Exception as exc:
+                logger.exception("Unexpected LLM error")
+                yield "Something went wrong on my end. Please try again."
+                return
 
             # No tool calls → stream the content response
             if not result.tool_calls:

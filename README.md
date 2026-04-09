@@ -1,39 +1,51 @@
 # Project Alice
 
-Personal JARVIS-inspired AI assistant that lives on your PC. Female voice, bilingual EN/JA, voice-loyal to one user, full PC control.
+Personal JARVIS-inspired AI assistant that lives entirely on your PC. Female voice, bilingual EN/JA, voice-loyal to one user, full PC control, learns from interactions.
 
 ---
 
 ## Features
 
-- **Voice + chat** — mic input or browser chat, always responds via voice + UI
-- **Wake word** — "Hey Jarvis" via OpenWakeWord (no account needed)
-- **Double clap** — triggers Iron Man boot sequence (music + apps + briefing)
-- **Speaker verification** — only Chester's voice accepted (SpeechBrain ECAPA-TDNN)
-- **PC control** — open/close apps, volume, lock screen, system info
-- **Web tools** — weather, world + PH news via RSS, file operations
-- **Desktop UI** — dark glassmorphism browser UI, canvas orb visualization, system tray
-- **Memory** — SQLite conversation history + user preferences
-- **Bilingual** — EN/JA support (Phase 8, planned)
+| Feature | Status |
+|---------|--------|
+| Voice + chat input | Done |
+| Wake word ("hey jarvis") | Done |
+| Double clap Iron Man boot | Done |
+| Speaker verification | Done |
+| PC control (apps, volume, lock) | Done |
+| Weather, news, file tools | Done |
+| Desktop browser UI + system tray | Done |
+| Bilingual EN/JA (auto-detect) | Done |
+| Memory (/remember, auto-extract) | Done |
+| Usage pattern proactive suggestions | Done |
+| Global hotkey Ctrl+Shift+A | Done |
+| Rotating log files | Done |
+| Windows autostart | Done |
 
 ---
 
 ## Quick Start
 
-### 1. Install dependencies
+### 1. Requirements
+
+- Python 3.14
+- Windows 10/11
+- [Groq API key](https://console.groq.com) — free, no credit card
+
+### 2. Install
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Configure
+### 3. Configure
 
 ```bash
 cp .env.example .env
-# Edit .env — add GROQ_API_KEY at minimum
+# Edit .env — fill in GROQ_API_KEY at minimum
 ```
 
-### 3. Run
+### 4. Run
 
 | Mode | Command |
 |------|---------|
@@ -41,24 +53,20 @@ cp .env.example .env
 | Desktop UI, text only | `py -3.14 alice/main.py --ui --chat` |
 | Terminal + voice | `py -3.14 alice/main.py` |
 | Terminal text only | `py -3.14 alice/main.py --chat` |
+| Skip health check | add `--no-check` to any mode |
+
+The browser opens automatically in UI mode. A system tray icon appears — right-click to quit.
 
 ---
 
-## Requirements
+## Voice Setup (optional)
 
-- Python 3.14
-- [Groq API key](https://console.groq.com) — free tier, no credit card
-- Windows 10/11
+### Wake word
+Default wake word: `hey jarvis` (OpenWakeWord, built-in, no account needed).
 
-Optional:
-- Ollama (local LLM on desktop, set `LLM_PROVIDER=ollama` in `.env`)
-- OpenWeatherMap API key (for weather tool)
+Custom wake word: set `WAKE_WORD_MODEL` in `.env` to path of your `.onnx` model. Use `scripts/generate_hey_alice.py` + `scripts/train_hey_alice.py` to train one.
 
----
-
-## Voice Enrollment (one-time setup)
-
-To enable speaker verification (Alice only responds to your voice):
+### Speaker verification (respond only to your voice)
 
 ```bash
 py -3.14 scripts/enroll_voice.py
@@ -66,51 +74,77 @@ py -3.14 scripts/enroll_voice.py
 
 Then set `SPEAKER_VERIFY_ENABLED=true` in `.env`.
 
+### Japanese voice input
+
+Set `STT_MODEL_SIZE=small` in `.env` (multilingual Whisper model). Japanese text chat works without this change.
+
+---
+
+## Memory & Learning
+
+Alice remembers things across sessions:
+
+| Command | Effect |
+|---------|--------|
+| `/remember I prefer dark mode` | Saves preference permanently |
+| `/forget dark mode` | Removes matching memories |
+| `/memories` | Lists everything Alice remembers |
+| `/ja` | Switch to Japanese mode |
+| `/en` | Switch to English mode |
+
+Alice also automatically extracts preferences from natural conversation ("I prefer Chrome over Firefox") and learns which tools you use at what time of day to offer proactive suggestions.
+
+---
+
+## Boot Sequence (double clap)
+
+Double clap activates the Iron Man boot:
+1. Plays `SHOOT_TO_THRILL_PATH` audio (if configured)
+2. Launches all `PRESET_APPS` side-by-side
+3. Fetches weather (if `OPENWEATHER_API_KEY` set)
+4. Reads top 3 BBC world headlines
+5. Speaks the full briefing
+
+---
+
+## Windows Autostart
+
+Install Alice to start automatically at logon:
+
+```bash
+py -3.14 scripts/autostart.py install
+py -3.14 scripts/autostart.py status
+py -3.14 scripts/autostart.py uninstall
+```
+
 ---
 
 ## Architecture
 
 ```
-Mic → AudioListener (subprocess)
-        ├── OpenWakeWord ("hey jarvis")
-        ├── Double clap detector
-        ├── Amplitude VAD → Faster-Whisper STT
-        └── SpeechBrain speaker verify
-                │
-                │ multiprocessing.Queue
-                ▼
-        AliceBrain (aiohttp server)
-        ├── Groq / Ollama LLM (streaming)
-        ├── Tool system (7 tools)
-        ├── SQLite memory
-        └── Edge-TTS voice output
-                │
-                │ WebSocket (localhost:8765)
-                ▼
+Mic -> AudioListener (subprocess)
+         |- OpenWakeWord ("hey jarvis")
+         |- Double clap detector
+         |- Amplitude VAD -> Faster-Whisper STT
+         `- SpeechBrain speaker verify
+                |
+                | multiprocessing.Queue
+                v
+        AliceBrain (aiohttp server :8765)
+         |- Groq / Ollama LLM (streaming)
+         |- 7 tools (PC, files, weather, news, music, apps)
+         |- SQLite memory + preferences
+         |- Usage pattern tracker
+         `- Edge-TTS voice output (EN + JA)
+                |
+                | WebSocket
+                v
         Browser UI
-        ├── Canvas orb visualization
-        ├── Streaming chat log
-        └── Settings panel
+         |- Canvas orb visualization (5 states)
+         |- Streaming chat log + EN subtitle (JA mode)
+         |- EN/JA toggle + settings panel
+         `- System tray (pystray)
 ```
-
----
-
-## Phase Progress
-
-| Phase | Description | Status |
-|-------|-------------|--------|
-| 0 | Foundation (config, persona, project structure) | ✅ Done |
-| 1 | Text chat brain (Groq/Ollama, SQLite memory) | ✅ Done |
-| 2 | Tool system (PC control, weather, news, files) | ✅ Done |
-| 3 | Voice input (STT, wake word, clap detection) | ✅ Done |
-| 3.5 | Custom "hey alice" wake word training | ✅ Done |
-| 4 | Voice output (Edge-TTS) | ✅ Done |
-| 5 | Speaker verification (SpeechBrain ECAPA-TDNN) | ✅ Done |
-| 6 | Desktop UI (aiohttp + browser + pystray) | ✅ Done |
-| 7 | Trigger sequences (Iron Man boot, hotkey) | Pending |
-| 8 | Bilingual EN/JA | Pending |
-| 9 | Memory & learning | Pending |
-| 10 | Polish & hardening | Pending |
 
 ---
 
@@ -119,10 +153,10 @@ Mic → AudioListener (subprocess)
 | Layer | Tech |
 |-------|------|
 | Language | Python 3.14 |
-| LLM (cloud) | Groq API — llama-3.3-70b-versatile |
-| LLM (local) | Ollama — llama3.1:8b |
-| STT | Faster-Whisper (local, CPU) |
-| TTS | Edge-TTS (Microsoft neural, EN + JA) |
+| LLM (cloud) | Groq API / llama-3.3-70b-versatile |
+| LLM (local) | Ollama / llama3.1:8b |
+| STT | Faster-Whisper (local CPU) |
+| TTS | Edge-TTS (EN: AriaNeural, JA: NanamiNeural) |
 | Wake word | OpenWakeWord (MIT license) |
 | Speaker verify | SpeechBrain ECAPA-TDNN |
 | UI server | aiohttp + Vanilla JS |
@@ -130,37 +164,76 @@ Mic → AudioListener (subprocess)
 | Audio | sounddevice + NumPy |
 | PC control | subprocess + psutil + ctypes |
 | System tray | pystray + Pillow |
+| Hotkey | keyboard |
 
 ---
 
-## Project Structure
+## File Structure
 
 ```
 Alice_Project/
-├── alice/
-│   ├── main.py              # Entry point
-│   ├── config.py            # Pydantic settings (.env)
-│   ├── persona.yaml         # Alice personality
-│   ├── server.py            # aiohttp HTTP + WebSocket server
-│   ├── tray.py              # System tray icon
-│   ├── brain/               # LLM engine, STT, TTS, providers
-│   ├── audio/               # Mic listener, wake word, VAD, speaker verify
-│   ├── memory/              # SQLite store + context builder
-│   └── tools/               # 7 PC control / web tools
-├── ui/
-│   ├── index.html           # Single-page app
-│   ├── styles/alice.css     # Dark glassmorphism theme
-│   └── js/                  # voice-viz, chat, settings, websocket
-├── scripts/
-│   ├── enroll_voice.py      # Voice enrollment wizard
-│   ├── generate_hey_alice.py
-│   └── train_hey_alice.py
-├── requirements.txt
-└── .env.example
+|- alice/
+|   |- main.py              # Entry point
+|   |- config.py            # Pydantic settings (.env)
+|   |- persona.yaml         # Alice personality
+|   |- server.py            # aiohttp HTTP + WebSocket
+|   |- tray.py              # System tray icon
+|   |- brain/               # LLM engine, STT, TTS, providers, language
+|   |- audio/               # Mic, wake word, VAD, speaker verify
+|   |- memory/              # SQLite, preferences, patterns, context builder
+|   |- tools/               # 7 PC control / web tools
+|   |- triggers/            # Boot sequence, wake sequence, hotkey
+|   `- utils/               # Health check, logging setup
+|- ui/
+|   |- index.html           # Single-page app
+|   |- styles/alice.css     # Dark glassmorphism theme
+|   `- js/                  # voice-viz, chat, settings, websocket
+|- scripts/
+|   |- enroll_voice.py      # Voice enrollment wizard
+|   |- autostart.py         # Windows Task Scheduler installer
+|   |- generate_hey_alice.py
+|   `- train_hey_alice.py
+|- logs/                    # Rotating log files (gitignored)
+|- data/                    # DB + models (gitignored)
+|- requirements.txt
+`- .env.example
 ```
+
+---
+
+## Troubleshooting
+
+**Alice won't start** — run health check: `py -3.14 alice/main.py --no-check` skips it. Or read the output to see what's missing.
+
+**Voice not working** — install audio deps: `pip install sounddevice faster-whisper openwakeword edge-tts`
+
+**Wake word too sensitive / not triggering** — adjust `WAKE_WORD_THRESHOLD` in `.env` (0.3 = sensitive, 0.7 = strict)
+
+**Japanese not working in voice** — set `STT_MODEL_SIZE=small` in `.env` (downloads ~240MB multilingual model on first use)
+
+**LLM errors** — check `logs/alice.log` for details. Common causes: expired API key, rate limit, no internet.
+
+---
+
+## Phase Progress
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 0 | Foundation | Done |
+| 1 | Text chat brain | Done |
+| 2 | Tool system | Done |
+| 3 | Voice input | Done |
+| 3.5 | Custom wake word training | Done |
+| 4 | Voice output (TTS) | Done |
+| 5 | Speaker verification | Done |
+| 6 | Desktop UI | Done |
+| 7 | Trigger sequences | Done |
+| 8 | Bilingual EN/JA | Done |
+| 9 | Memory & learning | Done |
+| 10 | Polish & hardening | Done |
 
 ---
 
 ## License
 
-Personal project — not for redistribution.
+Personal project. Not for redistribution.
