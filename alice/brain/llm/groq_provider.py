@@ -114,6 +114,23 @@ class GroqProvider(LLMProvider):
                     headers=self._build_headers(),
                     json=payload,
                 )
+                # Groq 400 tool_use_failed — model mangled the tool call generation.
+                # Retry once without tools so Alice can still answer.
+                if response.status_code == 400 and tools:
+                    body = response.json()
+                    err = body.get("error", {})
+                    if err.get("code") == "tool_use_failed":
+                        import logging as _logging
+                        _logging.getLogger(__name__).warning(
+                            "Groq tool_use_failed — retrying without tools"
+                        )
+                        fallback = {k: v for k, v in payload.items()
+                                    if k not in ("tools", "tool_choice")}
+                        response = await client.post(
+                            GROQ_API_URL,
+                            headers=self._build_headers(),
+                            json=fallback,
+                        )
                 response.raise_for_status()
                 data = response.json()
         except httpx.ConnectError:
