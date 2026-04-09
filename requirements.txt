@@ -1,0 +1,33 @@
+# Core
+pydantic>=2.10.4
+pydantic-settings>=2.7.1
+pyyaml>=6.0.2
+python-dotenv>=1.0.0
+
+# HTTP / Async
+httpx>=0.28.1
+aiosqlite>=0.20.0
+websockets>=13.0
+
+# Audio (Phase 3+) ✅ installed
+sounddevice>=0.5.0
+numpy>=2.0.0
+faster-whisper>=1.0.0
+openwakeword>=0.6.0       # MIT license, no account needed
+
+# TTS (Phase 4+) ✅ installed
+edge-tts>=6.1.0
+
+# Speaker verification (Phase 5+)
+# speechbrain>=1.0.0
+
+# PC Control (Phase 2+)
+psutil>=6.0.0
+
+# UI server + system tray (Phase 6+) ✅ installed
+aiohttp>=3.9.0
+pystray>=0.19.5
+Pillow>=10.0.0  # required by pystray
+
+# Global hotkey (Phase 7+)
+# keyboard>=0.13.5

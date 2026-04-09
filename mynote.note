@@ -1,0 +1,340 @@
+10 phases, each w/ testable deliverable:
+  - Ph 0-1: Foundation + text chat (Groq API) — reuse my_ai patterns                                                                                            
+  - Ph 2: Tool system — "Alice, open Chrome" → Chrome opens
+  - Ph 3-4: Voice in (Faster-Whisper) + voice out (Edge-TTS) — full voice loop
+  - Ph 5: Speaker verification — Alice obeys only you
+  - Ph 6: Tauri desktop UI — glassmorphism chat app (~50MB RAM)
+  - Ph 7: Trigger sequences — double clap = Iron Man boot
+  - Ph 8: Bilingual EN/JA w/ subtitles
+  - Ph 9-10: Memory/learning + polish
+
+  ~6-8 weeks of focused sessions. ~635MB RAM on laptop → fits 8GB.
+
+  Review the plan file — has full tech stack table, architecture diagram, project structure, feasibility notes, and reusable code paths.
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Ready to code?                                                  
+
+ Here is Claude's plan:                                                                                                                                         
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Alice — Personal AI Assistant (JARVIS-inspired)                                                                                                                
+                                                        
+ Context
+
+ Chester wants to build "Alice" — a personal AI assistant that lives entirely on his PC, inspired by Iron Man's JARVIS. Female AI, bilingual (EN/JA),
+ voice-loyal to creator only, controls the PC (apps, files, games), learns from interactions. Two activation modes: double clap (full Iron Man boot sequence
+ with music + weather + news) and "Hey Alice" (quiet start). Both voice and chat input, always voice + chat log output.
+
+ Hardware:
+
+ ┌─────┬──────────────────────┬──────────────────────┐
+ │     │       Desktop        │ Laptop (primary dev) │
+ ├─────┼──────────────────────┼──────────────────────┤
+ │ CPU │ Ryzen 5 4600G 6C/12T │ Ryzen 7 5700U 8C/16T │
+ ├─────┼──────────────────────┼──────────────────────┤
+ │ RAM │ 32 GB                │ 8 GB                 │
+ ├─────┼──────────────────────┼──────────────────────┤
+ │ GPU │ RTX 3050 8GB         │ Radeon integrated    │
+ └─────┴──────────────────────┴──────────────────────┘
+
+ Constraint: 8GB laptop → cloud LLM mandatory. Desktop RTX 3050 → can run small local models via Ollama.
+
+ Reusable code found:
+ - D:/DEV/CHESTER/my_ai/ — FastAPI + Ollama + SQLite + SSE streaming (Chester's existing AI project)
+ - D:/DEV/github/friday-tony-stark-demo/ — Python voice assistant with pluggable STT/LLM/TTS providers
+ - D:/DEV/github/CLAUDE_LEAKED_SOURCECODE/ — Tool system patterns, memory system, command registry
+
+ ---
+ Tech Stack
+
+ ┌────────────────┬───────────────────────────────────┬───────────────────────────────────────────────────────┐
+ │     Layer      │              Choice               │                          Why                          │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ Language       │ Python 3.12+                      │ Best AI/voice/automation ecosystem                    │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ Pkg Manager    │ uv                                │ Fast, modern, used by friday reference                │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ LLM (cloud)    │ Groq API (Llama 3.3 70B)          │ Free tier, fastest inference, Chester already uses it │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ LLM (local)    │ Ollama (Llama 3.1 8B Q4)          │ Desktop only, Chester has existing code               │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ STT            │ Faster-Whisper (local)            │ ~150MB RAM, excellent accuracy, no cloud needed       │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ TTS (EN)       │ Edge-TTS (en-US-AriaNeural)       │ Free, high quality, zero setup                        │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ TTS (JA)       │ Edge-TTS (ja-JP-NanamiNeural)     │ Free, natural Japanese voice                          │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ Wake Word      │ Picovoice Porcupine               │ Free tier supports custom "Hey Alice"                 │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ Clap Detection │ Custom (NumPy + sounddevice)      │ Simple amplitude spike detection                      │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ Speaker Verify │ SpeechBrain ECAPA-TDNN            │ State-of-art, runs on CPU, ~200MB                     │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ Audio I/O      │ sounddevice + NumPy               │ Modern, clean API, works on Windows                   │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ PC Control     │ subprocess + psutil + ctypes      │ Open apps, processes, Win32 API                       │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ Desktop UI     │ Tauri v2 (Rust + Web)             │ ~50MB RAM vs Electron's ~300MB                        │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ UI Frontend    │ Vanilla HTML/CSS/JS               │ Chester's strongest skill                             │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ Memory         │ SQLite (aiosqlite)                │ Zero-setup, single-user, Chester knows it             │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ IPC            │ multiprocessing.Queue + WebSocket │ Audio↔Brain via Queue, Brain↔UI via WS                │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ Weather        │ OpenWeatherMap API                │ Free tier                                             │
+ ├────────────────┼───────────────────────────────────┼───────────────────────────────────────────────────────┤
+ │ News           │ RSS feeds (httpx)                 │ Free, pattern from friday reference                   │
+ └────────────────┴───────────────────────────────────┴───────────────────────────────────────────────────────┘
+
+ RAM budget (laptop): ~635MB total → comfortable on 8GB
+
+ ---
+ Architecture
+
+ ┌─────────────────────────────────────────────────────┐
+ │                    ALICE SYSTEM                       │
+ │                                                       │
+ │  [Audio Listener — Process 1]                        │
+ │   Mic → Clap Detect / Wake Word / VAD / Speaker ID  │
+ │   → STT (Faster-Whisper) → text                     │
+ │          │                                            │
+ │          │ multiprocessing.Queue                      │
+ │          ▼                                            │
+ │  [Core Brain — Process 2]                            │
+ │   Text → LLM Router (Groq/Ollama)                   │
+ │   → Tool System (PC ctrl, files, web, news, weather) │
+ │   → TTS (Edge-TTS/Piper) → Speaker                  │
+ │   → Memory (SQLite)                                  │
+ │          │                                            │
+ │          │ WebSocket (localhost)                       │
+ │          ▼                                            │
+ │  [Tauri UI — Process 3]                              │
+ │   Chat log + Voice viz + Status + Settings           │
+ │                                                       │
+ │  [System Tray — pystray]                             │
+ │   Background service, hotkey, auto-start             │
+ └─────────────────────────────────────────────────────┘
+
+ ---
+ Project Structure
+
+ Alice_Project/
+ ├── alice/                        # Python backend
+ │   ├── main.py                   # Entry — launches all processes
+ │   ├── config.py                 # Pydantic Settings
+ │   ├── persona.yaml              # Alice personality
+ │   ├── audio/                    # Process 1
+ │   │   ├── listener.py           # Mic capture loop
+ │   │   ├── wake_word.py          # "Hey Alice" detection
+ │   │   ├── clap_detector.py      # Double clap
+ │   │   ├── speaker_verify.py     # Voice auth
+ │   │   ├── vad.py                # Voice activity detection
+ │   │   └── enrollment/           # Voice samples + embeddings
+ │   ├── brain/                    # Process 2
+ │   │   ├── engine.py             # Main brain loop
+ │   │   ├── llm/                  # Pluggable providers
+ │   │   │   ├── base.py
+ │   │   │   ├── groq_provider.py
+ │   │   │   ├── ollama_provider.py
+ │   │   │   └── router.py
+ │   │   ├── stt/
+ │   │   │   ├── base.py
+ │   │   │   └── faster_whisper.py
+ │   │   ├── tts/
+ │   │   │   ├── base.py
+ │   │   │   ├── edge_tts.py
+ │   │   │   └── piper_tts.py
+ │   │   └── language.py           # EN/JA switching
+ │   ├── tools/                    # PC control tools
+ │   │   ├── base.py               # BaseTool + registry
+ │   │   ├── pc_control.py         # Open/close apps
+ │   │   ├── file_ops.py           # File CRUD
+ │   │   ├── system_info.py        # System stats
+ │   │   ├── weather.py            # OpenWeatherMap
+ │   │   ├── news.py               # RSS feeds
+ │   │   ├── music.py              # Play audio
+ │   │   └── apps.py               # Preset app launcher
+ │   ├── memory/                   # Learning system
+ │   │   ├── store.py              # SQLite ops
+ │   │   ├── preferences.py        # User pref tracking
+ │   │   ├── patterns.py           # Usage pattern detection
+ │   │   └── context.py            # Dynamic prompt builder
+ │   ├── triggers/                 # Activation handlers
+ │   │   ├── clap_sequence.py      # Full Iron Man boot
+ │   │   ├── wake_word_sequence.py # Quiet start
+ │   │   ├── hotkey.py             # Keyboard shortcut
+ │   │   └── natural.py            # Mid-sentence detection
+ │   ├── server.py                 # WebSocket server
+ │   └── tray.py                   # System tray
+ ├── ui/                           # Tauri v2 desktop app
+ │   ├── src-tauri/                # Rust (auto-generated)
+ │   └── src/                      # Web frontend
+ │       ├── index.html
+ │       ├── styles/alice.css
+ │       └── js/
+ │           ├── chat.js
+ │           ├── voice-viz.js
+ │           ├── websocket.js
+ │           └── settings.js
+ ├── scripts/                      # Utilities
+ │   ├── enroll_voice.py           # Voice enrollment wizard
+ │   └── setup.py                  # First-time setup
+ ├── data/                         # Runtime (gitignored)
+ ├── pyproject.toml
+ └── .env
+
+ ---
+ Phased Implementation
+
+ Phase 0: Foundation (Days 1-2)
+
+ - Init git, .gitignore, pyproject.toml with uv
+ - alice/config.py — Pydantic Settings (adapt from my_ai)
+ - alice/persona.yaml — Alice personality def
+ - .env.example, alice/main.py stub
+ - Create techstack.note, features.note
+
+ Phase 1: Text Chat Brain (Days 3-5)
+
+ - alice/brain/llm/base.py — abstract LLMProvider
+ - alice/brain/llm/groq_provider.py — Groq streaming (adapt my_ai/ollama.py)
+ - alice/brain/llm/ollama_provider.py — reuse from my_ai
+ - alice/brain/llm/router.py — provider selection
+ - alice/memory/store.py — SQLite sessions + messages
+ - alice/brain/engine.py — main brain loop
+ - Test: type in terminal → get Alice response
+
+ Phase 2: Tool System (Days 6-9)
+
+ - alice/tools/base.py — BaseTool w/ permission model
+ - Implement tools: system_info, pc_control, file_ops, weather, news, music, apps
+ - Wire tools into LLM via function calling (Groq native support)
+ - Test: "Alice, open Chrome" → Chrome opens
+
+ Phase 3: Voice Input — STT + Wake Word (Days 10-13)
+
+ - alice/audio/listener.py — mic capture (sounddevice)
+ - alice/audio/vad.py — Silero VAD
+ - alice/audio/wake_word.py — Porcupine "Hey Alice"
+ - alice/audio/clap_detector.py — amplitude spike detection
+ - alice/brain/stt/faster_whisper.py — local STT
+ - Wire: mic → wake/clap → VAD → STT → brain
+ - Test: say "Hey Alice, what time is it?" → text response
+
+ Phase 4: Voice Output — TTS (Days 14-16)
+
+ - alice/brain/tts/edge_tts.py — Microsoft neural TTS
+ - alice/brain/tts/piper_tts.py — local fallback
+ - Audio playback via sounddevice
+ - Interrupt handling (stop TTS when user speaks)
+ - Test: full voice loop — speak → Alice speaks back
+
+ Phase 5: Speaker Verification (Days 17-19)
+
+ - scripts/enroll_voice.py — record 5-10 voice samples
+ - alice/audio/speaker_verify.py — SpeechBrain ECAPA-TDNN
+ - Cosine similarity threshold, reject unauthorized voices
+ - Test: Alice responds to Chester, ignores others
+
+ Phase 6: Tauri Desktop UI (Days 20-25)
+
+ - Init Tauri v2 in ui/
+ - alice/server.py — WebSocket bridge
+ - Build UI: chat log, voice viz (canvas orb), status, settings
+ - Dark glassmorphism theme (purple accent #7c3aed)
+ - System tray via pystray
+ - Test: proper desktop app with real-time chat
+
+ Phase 7: Trigger Sequences (Days 26-28)
+
+ - Double clap → parallel: play Shoot To Thrill + launch apps side-by-side + weather + news briefing
+ - "Hey Alice" → launch apps + greeting
+ - Global hotkey (Ctrl+Shift+A)
+ - Test: double clap triggers full Iron Man experience
+
+ Phase 8: Bilingual EN/JA (Days 29-32)
+
+ - Language detection + manual toggle
+ - Switch STT to multilingual model in JA mode
+ - Edge-TTS ja-JP-NanamiNeural for Japanese
+ - UI: Japanese response + English subtitle below
+ - LLM provides both languages in structured output
+ - Test: Alice speaks Japanese with English subtitles
+
+ Phase 9: Memory & Learning (Days 33-37)
+
+ - Preference tracking ("I like dark mode" → stored)
+ - Usage pattern detection (common commands, time patterns)
+ - Proactive suggestions ("It's 8 PM — open anime apps?")
+ - /remember command
+ - Dynamic context injection into LLM prompt
+ - Test: Alice remembers preferences across sessions
+
+ Phase 10: Polish (Days 38-42)
+
+ - Error handling, graceful failures
+ - Lazy-load heavy models for fast startup
+ - Auto-start on Windows boot
+ - Structured logging
+ - Test on both laptop + desktop
+ - README documentation
+
+ ---
+ Feasibility Notes
+
+ Easy (high confidence):
+ - Text chat w/ Groq/Ollama — Chester already has this in my_ai
+ - Tool system — both references have clean patterns
+ - STT w/ Faster-Whisper — mature, ~150MB, CPU-friendly
+ - TTS w/ Edge-TTS — free, zero setup, JA support
+ - PC control — standard Python subprocess/psutil
+ - SQLite memory — Chester knows the pattern
+
+ Medium (needs careful work):
+ - Wake word — Porcupine free tier supports custom "Hey Alice"
+ - Speaker verification — threshold tuning needs experimentation
+ - Clap detection — must filter noise (typing, drops). Use: 2 peaks, 0.3-0.8s apart, min amplitude, followed by 0.5s silence
+ - Window management — Win32 API for side-by-side positioning
+ - Tauri on Win10 desktop — may need WebView2 manual install
+
+ Hard (expect iteration):
+ - Bilingual JA — LLM must produce both JA text + EN translation reliably
+ - Natural conversation trigger ("what do you think, Alice?") — deferred to later phase, start with prefix-only
+ - Proactive suggestions — UX challenge, start conservative
+
+ ---
+ Verification Plan
+
+ Each phase has a concrete deliverable test:
+ 1. Terminal text chat works
+ 2. "Open Chrome" opens Chrome
+ 3. Voice input transcribes correctly
+ 4. Full voice loop (speak → hear Alice)
+ 5. Voice auth accepts Chester, rejects others
+ 6. Desktop app shows real-time chat
+ 7. Double clap triggers boot sequence
+ 8. Japanese mode with subtitles works
+ 9. Preferences persist across sessions
+ 10. Clean startup/shutdown on both machines
+
+ ---
+ Files to Reuse
+
+ - D:/DEV/CHESTER/my_ai/backend/app/services/ollama.py — SSE streaming pattern → adapt for Groq
+ - D:/DEV/CHESTER/my_ai/backend/app/db/database.py — SQLite schema → adapt for Alice memory
+ - D:/DEV/CHESTER/my_ai/backend/app/services/persona.py — persona loading pattern
+ - D:/DEV/github/friday-tony-stark-demo/friday/tools/ — tool registry + decorator pattern
+ - D:/DEV/github/friday-tony-stark-demo/agent_friday.py — provider switching constants
+
+ Answer: Is This Doable?
+
+ Yes. 100% doable with you and Claude. The hardest parts (LLM, STT, TTS) are solved by mature libraries. Chester already has working AI chat code in my_ai. The
+  reference projects provide proven patterns. The 10-phase plan ensures each step has a working deliverable before moving to the next. Total estimated
+ timeline: ~6-8 weeks of focused sessions.
+
+
+ To run right now (needs Groq API key):
+  1. Copy .env.example → .env
+  2. Set GROQ_API_KEY=your_key (free at console.groq.com)
+  3. py -3.14 alice/main.py → chat with Alice in terminal, she can check system stats, list files, fetch PH news

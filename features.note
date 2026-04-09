@@ -1,0 +1,86 @@
+## Alice Project — Features
+
+### Core (Phase 0-1) ✅ Done
+- [x] Pydantic config system (.env-based settings)
+- [x] Alice persona definition (persona.yaml)
+- [x] SQLite memory (sessions, messages, preferences)
+- [x] LLM provider system (Groq + Ollama, pluggable)
+- [x] Brain engine (streaming + non-streaming responses)
+- [x] Dynamic context builder (system prompt + history + preferences)
+- [x] Terminal chat loop (Phase 1 deliverable)
+
+### Tool System (Phase 2) ✅ Done
+- [x] BaseTool with permission model
+- [x] system_info tool (time, stats, storage)
+- [x] pc_control tool (open/close apps, volume, brightness)
+- [x] file_ops tool (read, list, search, delete)
+- [x] weather tool (OpenWeatherMap API)
+- [x] news tool (RSS: world + Philippines local)
+- [x] music tool (play audio file via default player)
+- [x] apps tool (preset app launcher, side-by-side layout)
+
+### Voice Input (Phase 3) ✅ Done
+- [x] Mic capture loop (sounddevice)
+- [x] Voice Activity Detection (amplitude-based custom VAD)
+- [x] Wake word detection: "hey_jarvis" (OpenWakeWord, MIT)
+- [x] Double clap detection (amplitude spike analysis)
+- [x] STT transcription (Faster-Whisper, local)
+
+### Custom Wake Word (Phase 3.5) ✅ Done
+- [x] Synthetic training data generation (Edge-TTS, 6 voices × variations)
+- [x] OWW embedding extraction + scikit-learn MLPClassifier training
+- [x] ONNX export via skl2onnx
+
+### Voice Output (Phase 4) ✅ Done
+- [x] Edge-TTS integration (EN: AriaNeural, JA: NanamiNeural)
+- [x] Audio playback (Windows cmd/sounddevice fallback)
+
+### Speaker Verification (Phase 5) ✅ Done
+- [x] Voice enrollment wizard (record 5 samples, scripts/enroll_voice.py)
+- [x] ECAPA-TDNN embedding extraction (SpeechBrain)
+- [x] Cosine similarity comparison at runtime
+- [x] Accept Chester / silent reject others
+
+### Desktop UI (Phase 6) ✅ Done
+- [x] aiohttp server (HTTP + WebSocket, localhost:8765)
+- [x] Chat log with real-time streaming tokens
+- [x] Canvas orb visualization (idle/listening/thinking/speaking/error states)
+- [x] Status indicator (header dot + label)
+- [x] Settings panel (config info, toggle rows)
+- [x] WebSocket bridge (Python brain ↔ browser JS)
+- [x] System tray icon (pystray, purple circle)
+- [x] /api/config REST endpoint
+- [x] --ui flag in main.py, --ui --chat for text-only UI
+
+### Trigger Sequences (Phase 7) 🔲
+- [ ] Double clap → Iron Man boot:
+  - Play AC/DC Shoot To Thrill
+  - Launch preset apps side-by-side
+  - Weather briefing (voice)
+  - World + PH news summary (voice)
+- [ ] "Hey Alice" → quiet start (apps + greeting, no music)
+- [ ] Global keyboard hotkey (Ctrl+Shift+A)
+- [ ] Natural conversation trigger ("what do you think, Alice?")
+
+### Bilingual EN/JA (Phase 8) 🔲
+- [ ] Language detection from user input
+- [ ] Manual toggle via voice/UI
+- [ ] STT multilingual model switch
+- [ ] Edge-TTS Japanese voice (ja-JP-NanamiNeural)
+- [ ] Response with English subtitles in JA mode
+- [ ] Structured LLM output (JA + EN translation)
+
+### Memory & Learning (Phase 9) 🔲
+- [ ] Preference tracking from conversation
+- [ ] Usage pattern detection (time, frequency)
+- [ ] Proactive suggestions (context-aware)
+- [ ] /remember command
+- [ ] Dynamic preference injection into LLM context
+
+### Polish (Phase 10) 🔲
+- [ ] Graceful error handling on all tools/providers
+- [ ] Lazy model loading (fast startup)
+- [ ] Windows auto-start (Task Scheduler)
+- [ ] Structured log rotation
+- [ ] Tested on both laptop + desktop
+- [ ] Full README documentation

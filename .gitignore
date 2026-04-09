@@ -1,0 +1,35 @@
+# Environment
+.env
+*.env
+
+# Data (runtime)
+data/
+*.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Audio / model artifacts
+alice/audio/enrollment/embeddings.npy
+alice/audio/enrollment/samples/
+
+# Tauri / Rust
+ui/src-tauri/target/
+ui/node_modules/
+
+# Logs
+*.log
+logs/
+
+# Claude project files
+.claude/

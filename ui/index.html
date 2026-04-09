@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alice</title>
+  <link rel="stylesheet" href="/styles/alice.css" />
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="brand-dot"></div>
+      <span class="brand-name">Alice</span>
+    </div>
+
+    <div class="header-status">
+      <div class="status-indicator" id="status-dot" data-state="connecting"></div>
+      <span class="status-label" id="status-label">Connecting…</span>
+    </div>
+
+    <button class="icon-btn" id="settings-btn" title="Settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65
+                 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65
+                 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65
+                 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0
+                 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65
+                 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1
+                 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65
+                 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- ── Main ───────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Voice orb visualization -->
+    <section class="orb-section">
+      <div class="orb-wrap">
+        <canvas id="orb-canvas" width="220" height="220"></canvas>
+      </div>
+      <p class="orb-label" id="orb-label">Initializing…</p>
+    </section>
+
+    <!-- Chat log -->
+    <section class="chat-section">
+      <div class="chat-log" id="chat-log" role="log" aria-live="polite"></div>
+    </section>
+
+  </main>
+
+  <!-- ── Input bar ───────────────────────────────────────────── -->
+  <footer class="input-bar">
+    <input
+      type="text"
+      class="chat-input"
+      id="chat-input"
+      placeholder="Message Alice…"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <button class="send-btn" id="send-btn" title="Send" aria-label="Send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </footer>
+
+  <!-- ── Settings panel ─────────────────────────────────────── -->
+  <div class="overlay" id="settings-overlay"></div>
+  <aside class="settings-panel" id="settings-panel" aria-hidden="true">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <button class="icon-btn" id="settings-close" aria-label="Close settings">✕</button>
+    </div>
+    <div class="settings-body" id="settings-body"></div>
+  </aside>
+
+  <!-- ── Scripts ───────────────────────────────────────────── -->
+  <script src="/js/voice-viz.js"></script>
+  <script src="/js/chat.js"></script>
+  <script src="/js/settings.js"></script>
+  <script src="/js/websocket.js"></script>
+
+</body>
+</html>
