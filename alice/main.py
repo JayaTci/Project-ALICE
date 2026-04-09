@@ -59,6 +59,20 @@ async def _terminal_loop() -> None:
             print("Alice: Goodbye, boss.")
             break
 
+        # Owner PIN → full boot sequence (same as double clap, no mic needed)
+        if user_input.strip() == settings.owner_pin:
+            print("\n[Owner verified — Iron Man boot sequence!]")
+            from alice.triggers.boot_sequence import run as boot_run
+
+            async def _print_boot(msg):
+                if msg.get("type") == "token":
+                    print(msg["text"], end="", flush=True)
+                elif msg.get("type") == "done":
+                    print()
+
+            await boot_run(_print_boot)
+            continue
+
         print("Alice: ", end="", flush=True)
         async for chunk in brain.respond_stream(user_input):
             print(chunk, end="", flush=True)

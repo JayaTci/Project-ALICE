@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     shoot_to_thrill_path: str = ""
     preset_apps: str = "chrome,spotify,discord"
 
+    # Owner PIN — virtual authentication when mic unavailable
+    # Entering this in chat triggers the full boot sequence (same as double clap)
+    owner_pin: str = "120901"
+
     # Logging
     log_level: str = "INFO"
 
