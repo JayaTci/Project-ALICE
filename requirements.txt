@@ -29,5 +29,5 @@ aiohttp>=3.9.0
 pystray>=0.19.5
 Pillow>=10.0.0  # required by pystray
 
-# Global hotkey (Phase 7+)
-# keyboard>=0.13.5
+# Global hotkey (Phase 7+) ✅ installed
+keyboard>=0.13.5

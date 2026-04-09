@@ -52,15 +52,15 @@
 - [x] /api/config REST endpoint
 - [x] --ui flag in main.py, --ui --chat for text-only UI
 
-### Trigger Sequences (Phase 7) 🔲
-- [ ] Double clap → Iron Man boot:
-  - Play AC/DC Shoot To Thrill
-  - Launch preset apps side-by-side
-  - Weather briefing (voice)
-  - World + PH news summary (voice)
-- [ ] "Hey Alice" → quiet start (apps + greeting, no music)
-- [ ] Global keyboard hotkey (Ctrl+Shift+A)
-- [ ] Natural conversation trigger ("what do you think, Alice?")
+### Trigger Sequences (Phase 7) ✅ Done
+- [x] Double clap → Iron Man boot:
+  - Play AC/DC Shoot To Thrill (if SHOOT_TO_THRILL_PATH configured)
+  - Launch preset apps + tile side-by-side
+  - Weather briefing (if OPENWEATHER_API_KEY configured)
+  - Top 3 BBC world news headlines (voice)
+- [x] Wake word → quiet start (apps + time-aware greeting, no music)
+- [x] Global keyboard hotkey (Ctrl+Shift+A) → wake sequence
+- [ ] Natural conversation trigger ("what do you think, Alice?") — deferred
 
 ### Bilingual EN/JA (Phase 8) 🔲
 - [ ] Language detection from user input

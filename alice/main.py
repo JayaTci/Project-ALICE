@@ -92,29 +92,53 @@ async def _voice_loop() -> None:
     print("  Alice — Personal AI Assistant  [VOICE MODE]")
     print("─" * 50)
     print(f"  Wake word: '{settings.wake_word_model}'")
-    print("  Double clap: ENABLED")
+    print("  Double clap: ENABLED (Iron Man boot)")
+    print("  Hotkey: Ctrl+Shift+A")
     print("  Ctrl+C to quit.\n")
 
     listener.start()
     print("Alice: Listening...")
 
+    # Phase 7: global hotkey in terminal voice mode
+    loop = asyncio.get_event_loop()
+    try:
+        from alice.triggers.hotkey import start_hotkey_listener
+        from alice.triggers.wake_sequence import run as wake_run
+
+        async def _hotkey_trigger():
+            print("\n[Ctrl+Shift+A — wake sequence triggered]")
+            await wake_run(lambda _: None)  # no UI broadcast in terminal mode
+
+        start_hotkey_listener(loop, _hotkey_trigger)
+        logger.info("Hotkey Ctrl+Shift+A registered.")
+    except Exception:
+        logger.warning("Hotkey listener unavailable.")
+
     try:
         while True:
-            event = await asyncio.get_event_loop().run_in_executor(
+            event = await loop.run_in_executor(
                 None, lambda: listener.get_event(timeout=0.5)
             )
             if event is None:
                 continue
 
             if event.type == EventType.WAKE_WORD:
-                print("\n[Wake word detected — listening for command...]")
+                print("\n[Wake word — running quiet start...]")
+                from alice.triggers.wake_sequence import run as wake_run
+                await wake_run(lambda _: None)
+                print("[Listening for command...]")
 
             elif event.type == EventType.DOUBLE_CLAP:
-                print("\n[Double clap! Triggering boot sequence...]")
-                # Phase 7 will handle the full sequence
-                response = await brain.respond("Double clap activated. Give me a quick system status.")
-                print(f"Alice: {response}")
-                await tts.speak(response)
+                print("\n[Double clap — Iron Man boot sequence!]")
+                from alice.triggers.boot_sequence import run as boot_run
+
+                async def _print_broadcast(msg):
+                    if msg.get("type") == "token":
+                        print(msg["text"], end="", flush=True)
+                    elif msg.get("type") == "done":
+                        print()
+
+                await boot_run(_print_broadcast)
 
             elif event.type == EventType.TRANSCRIPT:
                 text = event.text

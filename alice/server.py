@@ -144,8 +144,17 @@ async def _poll_voice_events(listener, brain) -> None:
             continue
 
         if event.type == EventType.WAKE_WORD:
-            await broadcast_status("listening", "Listening...")
             await broadcast({"type": "wake_word"})
+            async with _brain_lock:
+                # Phase 7: run quiet wake sequence (apps + greeting)
+                try:
+                    from alice.triggers.wake_sequence import run as wake_run
+                    await broadcast_status("thinking", "Starting up…")
+                    await wake_run(broadcast)
+                except Exception:
+                    logger.exception("Wake sequence error")
+                finally:
+                    await broadcast_status("listening", "Listening…")
 
         elif event.type == EventType.TRANSCRIPT:
             text = event.text
@@ -162,19 +171,14 @@ async def _poll_voice_events(listener, brain) -> None:
                     await broadcast_status("idle")
 
         elif event.type == EventType.DOUBLE_CLAP:
-            await broadcast({"type": "double_clap"})
+            # Phase 7: Iron Man boot sequence
             async with _brain_lock:
-                await broadcast_status("thinking")
                 try:
-                    await _run_brain(
-                        brain,
-                        "Double clap activated. Give me a quick system status.",
-                        speak=True,
-                    )
+                    from alice.triggers.boot_sequence import run as boot_run
+                    await boot_run(broadcast)
                 except Exception as exc:
-                    logger.exception("Brain error on double clap")
+                    logger.exception("Boot sequence error")
                     await broadcast({"type": "error", "message": str(exc)})
-                finally:
                     await broadcast_status("idle")
 
         elif event.type == EventType.ERROR:
@@ -251,6 +255,27 @@ async def run_ui_mode(voice_enabled: bool = True) -> None:
     await asyncio.sleep(0.4)
     webbrowser.open(f"http://{HOST}:{PORT}")
     logger.info("Browser opened.")
+
+    # Phase 7: global hotkey Ctrl+Shift+A
+    loop = asyncio.get_event_loop()
+    try:
+        from alice.triggers.hotkey import start_hotkey_listener
+        from alice.triggers.wake_sequence import run as wake_run
+
+        async def _hotkey_trigger():
+            async with _brain_lock:
+                await broadcast_status("thinking", "Hotkey triggered…")
+                try:
+                    await wake_run(broadcast)
+                except Exception:
+                    logger.exception("Hotkey wake sequence error")
+                finally:
+                    await broadcast_status("idle")
+
+        start_hotkey_listener(loop, _hotkey_trigger)
+        logger.info("Global hotkey Ctrl+Shift+A registered.")
+    except Exception:
+        logger.warning("Hotkey listener could not start (may need admin rights).")
 
     if voice_enabled:
         from alice.audio.listener import AudioListener
