@@ -38,3 +38,8 @@ logs/
 
 # Personal/private folders
 PC-SPECS/
+
+# Personal notes & internal planning docs
+*.note
+mynote.note
+aboutme.md
