@@ -4,7 +4,6 @@ Supports English and Japanese with natural neural voices.
 """
 
 import asyncio
-import io
 import logging
 import tempfile
 from pathlib import Path
@@ -19,16 +18,12 @@ VOICES = {
     "ja": "ja-JP-NanamiNeural",
 }
 
-# Playback rate/pitch adjustments for Alice's character
-RATE = "+0%"    # normal speed
-PITCH = "+0Hz"  # normal pitch
+RATE = "+0%"
+PITCH = "+0Hz"
 
 
 async def synthesize(text: str, language: str = "en") -> bytes:
-    """
-    Synthesize text to MP3 bytes using Edge-TTS.
-    Returns raw MP3 audio data.
-    """
+    """Synthesize text to MP3 bytes using Edge-TTS."""
     voice = VOICES.get(language, VOICES["en"])
     communicate = edge_tts.Communicate(text, voice, rate=RATE, pitch=PITCH)
 
@@ -44,29 +39,34 @@ async def synthesize(text: str, language: str = "en") -> bytes:
 
 
 async def speak(text: str, language: str = "en") -> None:
-    """
-    Synthesize and play audio through the default system audio output.
-    Uses sounddevice for playback (cross-platform).
-    """
+    """Synthesize and play audio. Logs errors but never raises."""
     if not text.strip():
         return
-
-    mp3_data = await synthesize(text, language)
-
-    # Decode MP3 to PCM using pydub or just save+play via subprocess
-    await _play_mp3(mp3_data)
+    logger.info("TTS: synthesizing %d chars [%s]", len(text), language)
+    try:
+        mp3_data = await synthesize(text, language)
+        logger.info("TTS: synthesized %d bytes — starting playback", len(mp3_data))
+        await _play_mp3(mp3_data)
+        logger.info("TTS: playback complete")
+    except Exception as exc:
+        logger.error("TTS speak failed: %s", exc)
 
 
 async def _play_mp3(mp3_data: bytes) -> None:
-    """Save MP3 to temp file and play silently via Windows MCI (no GUI pop-up)."""
+    """Save to temp file, try MCI then PowerShell fallback."""
     with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
         f.write(mp3_data)
         tmp_path = Path(f.name)
 
     try:
-        await _play_with_mci(str(tmp_path))
-    except Exception as exc:
-        logger.warning("MCI audio playback failed: %s", exc)
+        try:
+            logger.debug("TTS: attempting MCI playback")
+            await _play_with_mci(str(tmp_path))
+            logger.debug("TTS: MCI playback returned")
+        except Exception as mci_exc:
+            logger.warning("TTS: MCI failed (%s) — trying PowerShell fallback", mci_exc)
+            await _play_with_powershell(str(tmp_path))
+            logger.debug("TTS: PowerShell playback returned")
     finally:
         try:
             tmp_path.unlink()
@@ -77,43 +77,59 @@ async def _play_mp3(mp3_data: bytes) -> None:
 async def _play_with_mci(path: str) -> None:
     """
     Play MP3 via Windows MCI (winmm.dll).
-    Silent — no GUI pop-up. Blocks until playback finishes.
-    Zero extra dependencies; winmm.dll is built into all Windows versions.
+    Raises RuntimeError if MCI returns a non-zero error code.
     """
     import ctypes
-
     winmm = ctypes.windll.winmm
     alias = "alice_tts"
 
     def _blocking_play() -> None:
-        winmm.mciSendStringW(f'open "{path}" alias {alias}', None, 0, 0)
-        winmm.mciSendStringW(f'play {alias} wait', None, 0, 0)
-        winmm.mciSendStringW(f'close {alias}', None, 0, 0)
+        # Close any stale alias from a previous call
+        winmm.mciSendStringW(f"close {alias}", None, 0, 0)
+
+        # Open with explicit type for reliable MP3 support
+        ret = winmm.mciSendStringW(f'open "{path}" type mpegvideo alias {alias}', None, 0, 0)
+        if ret != 0:
+            raise RuntimeError(f"MCI open failed (code {ret})")
+
+        try:
+            ret = winmm.mciSendStringW(f"play {alias} wait", None, 0, 0)
+            if ret != 0:
+                raise RuntimeError(f"MCI play failed (code {ret})")
+        finally:
+            winmm.mciSendStringW(f"close {alias}", None, 0, 0)
 
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, _blocking_play)
 
 
-async def _play_with_sounddevice(mp3_data: bytes) -> None:
-    """Decode MP3 and play via sounddevice (requires pydub + ffmpeg)."""
-    try:
-        from pydub import AudioSegment
-        import sounddevice as sd
-        import numpy as np
+async def _play_with_powershell(path: str) -> None:
+    """
+    Play MP3 via PowerShell WPF MediaPlayer — fallback when MCI fails.
+    Available on all Windows versions with .NET Framework.
+    """
+    # Escape backslashes for PowerShell
+    ps_path = path.replace("\\", "\\\\")
+    script = (
+        "Add-Type -AssemblyName PresentationCore; "
+        "$p = New-Object System.Windows.Media.MediaPlayer; "
+        f"$p.Open([System.Uri]::new('{ps_path}')); "
+        "$p.Play(); "
+        "Start-Sleep -Milliseconds 800; "
+        "while (-not $p.NaturalDuration.HasTimeSpan) { Start-Sleep -Milliseconds 100 }; "
+        "$ms = [int]($p.NaturalDuration.TimeSpan.TotalMilliseconds); "
+        "Start-Sleep -Milliseconds $ms; "
+        "$p.Stop(); $p.Close()"
+    )
 
-        audio = AudioSegment.from_mp3(io.BytesIO(mp3_data))
-        samples = np.array(audio.get_array_of_samples(), dtype=np.float32)
-        samples /= 2 ** (audio.sample_width * 8 - 1)
-
-        if audio.channels == 2:
-            samples = samples.reshape(-1, 2)
-
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(
-            None,
-            lambda: sd.play(samples, samplerate=audio.frame_rate, blocking=True),
-        )
-    except ImportError:
-        logger.warning("pydub not installed — cannot play audio via sounddevice.")
-    except Exception as exc:
-        logger.error("Audio playback error: %s", exc)
+    loop = asyncio.get_event_loop()
+    proc = await asyncio.create_subprocess_exec(
+        "powershell",
+        "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden",
+        "-Command", script,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    _, stderr = await proc.communicate()
+    if proc.returncode != 0 and stderr:
+        raise RuntimeError(f"PowerShell playback failed: {stderr.decode(errors='replace')[:200]}")

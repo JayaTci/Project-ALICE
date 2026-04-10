@@ -2,7 +2,7 @@
 LLM Router — priority-based fallback chain with automatic rate-limit rotation.
 
 Provider priority order (from LLM_FALLBACK_CHAIN in .env):
-  groq → gemini → openrouter → ollama  (default)
+  groq → gemini → openrouter  (default)
 
 When a provider raises RateLimitError (HTTP 429), it is cooled down for
 COOLDOWN_SECONDS and the next available provider is tried automatically.
@@ -146,8 +146,10 @@ def _build_providers() -> list[tuple[str, LLMProvider]]:
     for name in chain:
         try:
             if name == "groq":
-                if not settings.groq_api_key:
-                    logger.info("Skipping Groq — GROQ_API_KEY not set")
+                import os as _os
+                has_groq = bool(settings.groq_api_key.strip()) or bool(_os.environ.get("GROQ_API_KEY_1", "").strip())
+                if not has_groq:
+                    logger.info("Skipping Groq — no GROQ_API_KEY set")
                     continue
                 from alice.brain.llm.groq_provider import GroqProvider
                 providers.append(("groq", GroqProvider()))
@@ -162,17 +164,14 @@ def _build_providers() -> list[tuple[str, LLMProvider]]:
                 logger.info("LLM chain: +Gemini (%s)", settings.gemini_model)
 
             elif name == "openrouter":
-                if not settings.openrouter_api_key:
-                    logger.info("Skipping OpenRouter — OPENROUTER_API_KEY not set")
+                import os as _os
+                has_or = bool(settings.openrouter_api_key.strip()) or bool(_os.environ.get("OPENROUTER_API_KEY_1", "").strip())
+                if not has_or:
+                    logger.info("Skipping OpenRouter — no OPENROUTER_API_KEY set")
                     continue
                 from alice.brain.llm.openrouter_provider import OpenRouterProvider
                 providers.append(("openrouter", OpenRouterProvider()))
                 logger.info("LLM chain: +OpenRouter (%s)", settings.openrouter_model)
-
-            elif name == "ollama":
-                from alice.brain.llm.ollama_provider import OllamaProvider
-                providers.append(("ollama", OllamaProvider()))
-                logger.info("LLM chain: +Ollama (%s)", settings.ollama_model)
 
             else:
                 logger.warning("Unknown provider in LLM_FALLBACK_CHAIN: '%s'", name)
@@ -183,7 +182,7 @@ def _build_providers() -> list[tuple[str, LLMProvider]]:
     if not providers:
         raise ValueError(
             "No LLM providers available. Set at least one API key in .env "
-            "(GROQ_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY) or run Ollama locally."
+            "(GROQ_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY)."
         )
 
     return providers

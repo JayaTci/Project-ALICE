@@ -1,5 +1,11 @@
 from pathlib import Path
+
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Load .env into os.environ so numbered keys (GROQ_API_KEY_1, OPENROUTER_API_KEY_1, etc.)
+# are accessible via os.environ.get() in providers.
+load_dotenv(override=False)
 
 
 class Settings(BaseSettings):
@@ -16,11 +22,8 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-2.0-flash"
     openrouter_api_key: str = ""
     openrouter_model: str = "meta-llama/llama-3.3-70b-instruct:free"
-    ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen2.5:1.5b"  # fastest good model for CPU-only 8GB; upgrade to 3b on desktop
     llm_provider: str = "groq"  # legacy — kept for backwards compat
     # Fallback chain: providers tried in order when rate-limited. Skip providers with no API key.
-    # Ollama is opt-in — add "ollama" here if you have it running with the model pulled.
     llm_fallback_chain: str = "groq,gemini,openrouter"
 
     # Database

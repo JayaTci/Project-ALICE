@@ -51,8 +51,11 @@ def run_health_check(verbose: bool = True) -> bool:
     # ── LLM provider chain ────────────────────────────────────────────────
     chain = [s.strip().lower() for s in settings.llm_fallback_chain.split(",") if s.strip()]
     active_providers = []
+    import os as _os
     if "groq" in chain:
-        if settings.groq_api_key and not settings.groq_api_key.startswith("your_"):
+        has_groq = (bool(settings.groq_api_key) and not settings.groq_api_key.startswith("your_")) \
+                   or bool(_os.environ.get("GROQ_API_KEY_1", "").strip())
+        if has_groq:
             results.append((True, f"Groq: {settings.groq_model}"))
             active_providers.append("groq")
         else:
@@ -64,14 +67,14 @@ def run_health_check(verbose: bool = True) -> bool:
         else:
             results.append((None, "Gemini: GEMINI_API_KEY not set — skipped in chain"))
     if "openrouter" in chain:
-        if settings.openrouter_api_key and not settings.openrouter_api_key.startswith("your_"):
+        has_or = (bool(settings.openrouter_api_key) and not settings.openrouter_api_key.startswith("your_")) \
+                 or bool(_os.environ.get("OPENROUTER_API_KEY_1", "").strip())
+        if has_or:
             results.append((True, f"OpenRouter: {settings.openrouter_model}"))
             active_providers.append("openrouter")
         else:
             results.append((None, "OpenRouter: OPENROUTER_API_KEY not set — skipped in chain"))
-    if "ollama" in chain:
-        results.append((None, f"Ollama: ensure Ollama is running at {settings.ollama_base_url}"))
-    if not active_providers and "ollama" not in chain:
+    if not active_providers:
         results.append((False, "No LLM providers configured — set at least one API key in .env"))
 
     # ── Database ──────────────────────────────────────────────────────────

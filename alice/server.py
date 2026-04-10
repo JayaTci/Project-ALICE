@@ -73,14 +73,18 @@ async def _run_brain(brain, text: str, speak: bool = False) -> None:
 
     if speak and full_response:
         await broadcast_status("speaking")
-        from alice.brain.tts import edge_tts as tts
-        from alice.brain.language import get_language
-        lang = get_language()
-        # Strip [EN: ...] block before TTS so Alice only speaks the primary language
-        tts_text = _re.sub(r'\s*\[EN:[\s\S]*?\]\s*$', '', full_response).strip()
-        if tts_text:
-            await tts.speak(tts_text, language=lang)
-        await broadcast_status("idle")
+        try:
+            from alice.brain.tts import edge_tts as tts
+            from alice.brain.language import get_language
+            lang = get_language()
+            # Strip [EN: ...] block — speak primary language only
+            tts_text = _re.sub(r'\s*\[EN:[\s\S]*?\]\s*$', '', full_response).strip()
+            if tts_text:
+                await tts.speak(tts_text, language=lang)
+        except Exception as tts_exc:
+            logger.error("TTS error (voice disabled for this response): %s", tts_exc)
+        finally:
+            await broadcast_status("idle")
 
 
 # ─── WebSocket handler ───────────────────────────────────────────────────────

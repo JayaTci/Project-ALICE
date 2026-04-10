@@ -4,7 +4,7 @@
 - [x] Pydantic config system (.env-based settings)
 - [x] Alice persona definition (persona.yaml)
 - [x] SQLite memory (sessions, messages, preferences)
-- [x] LLM provider system (Groq + Ollama, pluggable)
+- [x] LLM provider system (Groq + Gemini + OpenRouter, cloud-only, pluggable)
 - [x] Brain engine (streaming + non-streaming responses)
 - [x] Dynamic context builder (system prompt + history + preferences)
 - [x] Terminal chat loop (Phase 1 deliverable)
