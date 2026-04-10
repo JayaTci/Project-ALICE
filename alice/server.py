@@ -142,17 +142,15 @@ async def _handle_chat_message(brain, text: str) -> None:
     """Process user text from UI chat input."""
     from alice.config import settings
 
-    # Owner PIN → skip brain, run full boot sequence (same as double clap)
+    # Owner PIN → run personal welcome + news briefing
     if settings.owner_pin and text.strip() == settings.owner_pin:
         async with _brain_lock:
-            await broadcast({"type": "token", "text": "Owner verified. Running boot sequence..."})
-            await broadcast({"type": "done"})
-            await broadcast_status("thinking", "Boot sequence...")
+            await broadcast_status("thinking", "Verifying owner…")
             try:
-                from alice.triggers.boot_sequence import run as boot_run
-                await boot_run(broadcast)
+                from alice.triggers.owner_sequence import run as owner_run
+                await owner_run(broadcast)
             except Exception:
-                logger.exception("Boot sequence error via owner PIN")
+                logger.exception("Owner sequence error")
             finally:
                 await broadcast_status("idle")
         return

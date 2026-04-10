@@ -53,6 +53,12 @@
 - [x] --ui flag in main.py, --ui --chat for text-only UI
 
 ### Trigger Sequences (Phase 7) ✅ Done
+- [x] Owner PIN (120901) → personal welcome sequence:
+  - Identity confirmed greeting + time + date
+  - International headlines (BBC World, top 3)
+  - Philippine local news (Rappler/Inquirer, top 3)
+  - Tagum City news (Google News search, top 3)
+  - TTS spoken briefing
 - [x] Double clap → Iron Man boot:
   - Play AC/DC Shoot To Thrill (if SHOOT_TO_THRILL_PATH configured)
   - Launch preset apps + tile side-by-side

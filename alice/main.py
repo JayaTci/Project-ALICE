@@ -59,18 +59,18 @@ async def _terminal_loop() -> None:
             print("Alice: Goodbye, boss.")
             break
 
-        # Owner PIN → full boot sequence (same as double clap, no mic needed)
-        if user_input.strip() == settings.owner_pin:
-            print("\n[Owner verified — Iron Man boot sequence!]")
-            from alice.triggers.boot_sequence import run as boot_run
+        # Owner PIN → personal welcome + news briefing
+        if settings.owner_pin and user_input.strip() == settings.owner_pin:
+            print("\n[Owner verified — welcome sequence]")
+            from alice.triggers.owner_sequence import run as owner_run
 
-            async def _print_boot(msg):
+            async def _print_owner(msg):
                 if msg.get("type") == "token":
                     print(msg["text"], end="", flush=True)
                 elif msg.get("type") == "done":
                     print()
 
-            await boot_run(_print_boot)
+            await owner_run(_print_owner)
             continue
 
         print("Alice: ", end="", flush=True)
