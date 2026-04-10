@@ -2,7 +2,7 @@ import json
 from collections.abc import AsyncGenerator
 
 import httpx
-from alice.brain.llm.base import LLMChunk, LLMProvider, Message
+from alice.brain.llm.base import LLMChunk, LLMProvider, Message, RateLimitError
 from alice.config import settings
 
 
@@ -56,13 +56,23 @@ class OllamaProvider(LLMProvider):
             "stream": False,
         }
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.post(
-                f"{self._base_url}/api/chat",
-                json=payload,
-            )
-            response.raise_for_status()
-            data = response.json()
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post(
+                    f"{self._base_url}/api/chat",
+                    json=payload,
+                )
+                response.raise_for_status()
+                data = response.json()
+        except httpx.ConnectError:
+            raise RuntimeError("Cannot reach Ollama — is it running? (ollama serve)")
+        except httpx.TimeoutException:
+            raise RuntimeError("Ollama timed out.")
+        except httpx.HTTPStatusError as exc:
+            code = exc.response.status_code
+            if code == 429:
+                raise RateLimitError("Ollama rate limit hit.")
+            raise RuntimeError(f"Ollama error {code}: {exc.response.text[:200]}")
 
         content = data.get("message", {}).get("content", "")
         return LLMChunk(content=content, done=True)

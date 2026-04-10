@@ -95,11 +95,16 @@ class FallbackRouter(LLMProvider):
                 self._limited_until[idx] = time.monotonic() + COOLDOWN_SECONDS
                 logger.warning("'%s' rate-limited — trying next provider", name)
                 last_exc = exc
-            except RuntimeError:
-                raise  # auth errors, network errors → surface immediately
+            except Exception as exc:
+                # Any other error (connection refused, HTTP error, parse error, etc.)
+                # — log it and try the next provider rather than crashing.
+                logger.warning("'%s' failed (%s: %s) — trying next provider",
+                               name, type(exc).__name__, exc)
+                last_exc = exc if isinstance(exc, RuntimeError) else RuntimeError(str(exc))
 
         raise RuntimeError(
-            "All LLM providers are currently rate-limited. Please wait a moment and try again."
+            "All LLM providers unavailable. "
+            f"Last error: {last_exc}"
         ) from last_exc
 
     async def stream(
