@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     ollama_model: str = "llama3.1:8b"
     llm_provider: str = "groq"  # legacy — kept for backwards compat
     # Fallback chain: providers tried in order when rate-limited. Skip providers with no API key.
-    llm_fallback_chain: str = "groq,gemini,openrouter,ollama"
+    # Ollama is opt-in — add "ollama" here if you have it running with the model pulled.
+    llm_fallback_chain: str = "groq,gemini,openrouter"
 
     # Database
     database_path: str = str(Path(__file__).parent.parent / "data" / "alice.db")

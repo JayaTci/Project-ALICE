@@ -78,6 +78,8 @@ class OpenRouterProvider(LLMProvider):
             if code == 401:
                 raise RuntimeError("OpenRouter API key invalid — check OPENROUTER_API_KEY in .env.")
             if code == 429:
+                import logging as _log
+                _log.getLogger(__name__).warning("OpenRouter 429: %s", exc.response.text[:300])
                 raise RateLimitError("OpenRouter rate limit hit — switching to next provider.")
             raise RuntimeError(f"OpenRouter API error {code}: {exc.response.text[:200]}")
 

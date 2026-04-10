@@ -142,6 +142,8 @@ class GroqProvider(LLMProvider):
             if code == 401:
                 raise RuntimeError("Groq API key invalid — check GROQ_API_KEY in .env.")
             if code == 429:
+                import logging as _log
+                _log.getLogger(__name__).warning("Groq 429: %s", exc.response.text[:300])
                 raise RateLimitError("Groq rate limit hit — switching to next provider.")
             raise RuntimeError(f"Groq API error {code}: {exc.response.text[:200]}")
 

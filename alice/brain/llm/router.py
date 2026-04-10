@@ -19,7 +19,7 @@ from alice.brain.llm.base import LLMChunk, LLMProvider, Message, RateLimitError
 
 logger = logging.getLogger(__name__)
 
-COOLDOWN_SECONDS = 60.0  # seconds before retrying a rate-limited provider
+COOLDOWN_SECONDS = 120.0  # seconds before retrying a rate-limited provider
 
 _router: "FallbackRouter | None" = None
 
