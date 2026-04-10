@@ -1,4 +1,6 @@
 import json
+import logging
+import time
 from collections.abc import AsyncGenerator
 
 import httpx
@@ -6,16 +8,59 @@ from alice.brain.llm.base import LLMChunk, LLMProvider, Message, RateLimitError,
 from alice.config import settings
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+KEY_COOLDOWN_SECONDS = 120.0
+
+logger = logging.getLogger(__name__)
 
 
 class GroqProvider(LLMProvider):
     def __init__(self) -> None:
-        self._api_key = settings.groq_api_key
-        self._model = settings.groq_model
+        import os
+        # Numbered keys: GROQ_API_KEY_1, GROQ_API_KEY_2, ... (preferred, easy to read)
+        numbered = []
+        i = 1
+        while True:
+            key = os.environ.get(f"GROQ_API_KEY_{i}", "").strip()
+            if not key:
+                break
+            numbered.append(key)
+            i += 1
 
-    def _build_headers(self) -> dict:
+        # Fallback: comma-separated GROQ_API_KEY (legacy / single key)
+        base = [k.strip() for k in settings.groq_api_key.split(",") if k.strip()]
+
+        # Numbered takes priority; merge without duplicates
+        seen = set(numbered)
+        for k in base:
+            if k not in seen:
+                numbered.append(k)
+                seen.add(k)
+
+        self._keys: list[str] = numbered
+        self._model = settings.groq_model
+        self._limited_until: dict[int, float] = {}  # key index → monotonic time
+
+        logger.info("Groq: %d API key(s) loaded — rotating on rate limit", len(self._keys))
+
+    def _available_keys(self) -> list[tuple[int, str]]:
+        now = time.monotonic()
+        return [
+            (i, key)
+            for i, key in enumerate(self._keys)
+            if now >= self._limited_until.get(i, 0.0)
+        ]
+
+    def _mark_key_limited(self, idx: int) -> None:
+        self._limited_until[idx] = time.monotonic() + KEY_COOLDOWN_SECONDS
+        available = len(self._available_keys())
+        logger.warning(
+            "Groq key #%d rate-limited — cooling %ds. %d/%d keys still available.",
+            idx, int(KEY_COOLDOWN_SECONDS), available, len(self._keys),
+        )
+
+    def _headers(self, key: str) -> dict:
         return {
-            "Authorization": f"Bearer {self._api_key}",
+            "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
         }
 
@@ -23,10 +68,8 @@ class GroqProvider(LLMProvider):
         result = []
         for m in messages:
             msg: dict = {"role": m.role}
-
-            # content: null for assistant+tool_calls (Groq requirement), string otherwise
             if m.tool_calls:
-                msg["content"] = m.content  # may be None/null
+                msg["content"] = m.content
                 msg["tool_calls"] = [
                     {
                         "id": tc.id,
@@ -40,10 +83,8 @@ class GroqProvider(LLMProvider):
                 ]
             else:
                 msg["content"] = m.content or ""
-
             if m.tool_call_id:
                 msg["tool_call_id"] = m.tool_call_id
-
             result.append(msg)
         return result
 
@@ -52,51 +93,39 @@ class GroqProvider(LLMProvider):
         messages: list[Message],
         tools: list[dict] | None = None,
     ) -> AsyncGenerator[LLMChunk, None]:
-        payload: dict = {
-            "model": self._model,
-            "messages": self._format_messages(messages),
-            "stream": True,
-        }
-        if tools:
-            payload["tools"] = tools
-
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            async with client.stream(
-                "POST",
-                GROQ_API_URL,
-                headers=self._build_headers(),
-                json=payload,
-            ) as response:
-                response.raise_for_status()
-                async for line in response.aiter_lines():
-                    line = line.strip()
-                    if not line or not line.startswith("data:"):
-                        continue
-                    data = line[len("data:"):].strip()
-                    if data == "[DONE]":
-                        yield LLMChunk(content="", done=True)
-                        return
-                    try:
-                        chunk = json.loads(data)
-                    except json.JSONDecodeError:
-                        continue
-                    choice = chunk.get("choices", [{}])[0]
-                    delta = choice.get("delta", {})
-                    content = delta.get("content") or ""
-                    finish = choice.get("finish_reason")
-
-                    # Handle tool calls in streaming (accumulate)
-                    tool_calls_raw = delta.get("tool_calls")
-                    if tool_calls_raw:
-                        # Tool calls come fragmented — yield after finish
-                        continue
-
-                    yield LLMChunk(content=content, done=finish == "stop")
+        # stream() delegates to complete() for simplicity (key rotation logic lives there)
+        result = await self.complete(messages, tools)
+        yield result
 
     async def complete(
         self,
         messages: list[Message],
         tools: list[dict] | None = None,
+    ) -> LLMChunk:
+        available = self._available_keys()
+        if not available:
+            # All keys cooling — try all anyway as last resort before giving up
+            logger.warning("All Groq keys cooling down — trying all anyway")
+            available = list(enumerate(self._keys))
+
+        last_exc: Exception = RateLimitError("All Groq keys rate-limited.")
+
+        for idx, key in available:
+            try:
+                return await self._complete_with_key(key, messages, tools)
+            except RateLimitError:
+                self._mark_key_limited(idx)
+                last_exc = RateLimitError("All Groq keys rate-limited.")
+            except RuntimeError as exc:
+                raise  # non-rate-limit errors bubble up immediately
+
+        raise last_exc  # all keys exhausted → FallbackRouter tries next provider
+
+    async def _complete_with_key(
+        self,
+        key: str,
+        messages: list[Message],
+        tools: list[dict] | None,
     ) -> LLMChunk:
         payload: dict = {
             "model": self._model,
@@ -111,24 +140,19 @@ class GroqProvider(LLMProvider):
             async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(
                     GROQ_API_URL,
-                    headers=self._build_headers(),
+                    headers=self._headers(key),
                     json=payload,
                 )
-                # Groq 400 tool_use_failed — model mangled the tool call generation.
-                # Retry once without tools so Alice can still answer.
+                # Groq 400 tool_use_failed — retry without tools
                 if response.status_code == 400 and tools:
                     body = response.json()
-                    err = body.get("error", {})
-                    if err.get("code") == "tool_use_failed":
-                        import logging as _logging
-                        _logging.getLogger(__name__).warning(
-                            "Groq tool_use_failed — retrying without tools"
-                        )
+                    if body.get("error", {}).get("code") == "tool_use_failed":
+                        logger.warning("Groq tool_use_failed — retrying without tools")
                         fallback = {k: v for k, v in payload.items()
                                     if k not in ("tools", "tool_choice")}
                         response = await client.post(
                             GROQ_API_URL,
-                            headers=self._build_headers(),
+                            headers=self._headers(key),
                             json=fallback,
                         )
                 response.raise_for_status()
@@ -142,9 +166,8 @@ class GroqProvider(LLMProvider):
             if code == 401:
                 raise RuntimeError("Groq API key invalid — check GROQ_API_KEY in .env.")
             if code == 429:
-                import logging as _log
-                _log.getLogger(__name__).warning("Groq 429: %s", exc.response.text[:300])
-                raise RateLimitError("Groq rate limit hit — switching to next provider.")
+                logger.warning("Groq 429: %s", exc.response.text[:300])
+                raise RateLimitError("Groq key rate-limited.")
             raise RuntimeError(f"Groq API error {code}: {exc.response.text[:200]}")
 
         choice = data["choices"][0]
@@ -166,12 +189,16 @@ class GroqProvider(LLMProvider):
         return LLMChunk(content=content, done=True, tool_calls=tool_calls)
 
     async def health_check(self) -> bool:
+        available = self._available_keys()
+        if not available:
+            return False
+        _, key = available[0]
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.get(
+                r = await client.get(
                     "https://api.groq.com/openai/v1/models",
-                    headers=self._build_headers(),
+                    headers=self._headers(key),
                 )
-                return response.status_code == 200
+                return r.status_code == 200
         except Exception:
             return False
